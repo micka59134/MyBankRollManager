@@ -1,5 +1,7 @@
 'use strict';
 
+const APP_VERSION = '1.0.0';
+
 /* =========================================================================
    Bankroll Manager — logique applicative
    Modèle de données répliquant fidèlement la table Excel "Paris" du fichier
@@ -1096,4 +1098,5 @@ initIconSelects();
 initTheme();
 updateProfileUI();
 refreshAll();
+document.getElementById('appVersion').textContent = APP_VERSION;
 trySeedImport(currentProfile);
