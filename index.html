@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bankroll Manager</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚽</text></svg>">
+<link rel="stylesheet" href="styles.css?v=9">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ===== Topbar ===== -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="logo">⚽ <span class="logo-text">Bankroll<strong>Manager</strong></span></span>
+      <div class="profile-switcher" role="group" aria-label="Profil">
+        <button type="button" class="profile-btn" data-profile="Tom">Tom</button>
+        <button type="button" class="profile-btn" data-profile="Micka">Micka</button>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost" id="btnSettings" title="Paramètres">⚙️</button>
+      <button class="btn btn-ghost" id="btnTheme" title="Changer de thème">🌙</button>
+      <input type="file" id="fileImport" accept=".xlsx" hidden>
+      <button class="btn btn-ghost" id="btnImport">📥 Importer</button>
+      <button class="btn btn-ghost" id="btnExport">📤 Exporter</button>
+      <button class="btn btn-primary" id="btnAdd">+ Ajouter</button>
+    </div>
+  </header>
+
+  <main class="content">
+
+    <!-- ===== Empty state ===== -->
+    <div class="empty-state" id="emptyState" hidden>
+      <div class="empty-card">
+        <div class="empty-icon">📊</div>
+        <h2>Aucune donnée pour <span id="emptyProfileName">Tom</span></h2>
+        <p>Importez un fichier <code>bankroll_manager_data.xlsx</code> existant, ou commencez à ajouter des paris manuellement. Ce profil a ses propres données, indépendantes de l'autre profil.</p>
+        <div class="empty-actions">
+          <button class="btn btn-primary" id="btnImportEmpty">📥 Importer un fichier Excel</button>
+          <button class="btn btn-secondary" id="btnAddEmpty">+ Ajouter une entrée</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="mainView">
+
+      <!-- ===== Filters ===== -->
+      <section class="panel filters-panel">
+        <div class="filters">
+          <input type="search" id="fSearch" placeholder="🔎 Rechercher (match, commentaire...)" class="input">
+
+          <div class="iselect" id="fType" data-placeholder="Tous types">
+            <button type="button" class="iselect-btn"><span class="iselect-label">Tous types</span><span class="iselect-caret">▾</span></button>
+            <div class="iselect-menu" hidden></div>
+          </div>
+
+          <div class="iselect" id="fBookmaker" data-placeholder="Tous bookmakers">
+            <button type="button" class="iselect-btn"><span class="iselect-label">Tous bookmakers</span><span class="iselect-caret">▾</span></button>
+            <div class="iselect-menu" hidden></div>
+          </div>
+
+          <div class="iselect" id="fCompetition" data-placeholder="Toutes compétitions">
+            <button type="button" class="iselect-btn"><span class="iselect-label">Toutes compétitions</span><span class="iselect-caret">▾</span></button>
+            <div class="iselect-menu" hidden></div>
+          </div>
+
+          <div class="iselect" id="fPays" data-placeholder="Tous pays">
+            <button type="button" class="iselect-btn"><span class="iselect-label">Tous pays</span><span class="iselect-caret">▾</span></button>
+            <div class="iselect-menu" hidden></div>
+          </div>
+
+          <div class="iselect" id="fSaison" data-placeholder="Toutes saisons">
+            <button type="button" class="iselect-btn"><span class="iselect-label">Toutes saisons</span><span class="iselect-caret">▾</span></button>
+            <div class="iselect-menu" hidden></div>
+          </div>
+
+          <button class="btn btn-ghost" id="btnResetFilters">✕ Réinitialiser</button>
+        </div>
+        <div class="filter-status" id="filterStatus" hidden>
+          🔎 Filtre actif — le tableau de bord, le graphique et l'historique ci-dessous ne montrent que
+          <strong id="filterStatusCount">0</strong> entrée(s) sur <span id="filterStatusTotal">0</span>.
+        </div>
+      </section>
+
+      <!-- ===== Dashboard cards ===== -->
+      <section class="cards" id="cards"></section>
+
+      <!-- ===== Chart ===== -->
+      <section class="panel chart-panel">
+        <div class="panel-header">
+          <h3>Évolution du profit</h3>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="profitChart"></canvas>
+        </div>
+      </section>
+
+      <!-- ===== Table ===== -->
+      <section class="panel table-panel">
+        <div class="panel-header">
+          <h3>L'historique des mouvements <span id="rowCount" class="badge">0</span></h3>
+        </div>
+        <div class="table-scroll">
+          <table id="dataTable">
+            <thead>
+              <tr>
+                <th data-sort="type">Type</th>
+                <th data-sort="date">Date</th>
+                <th data-sort="paris">Pari</th>
+                <th data-sort="bookmaker">Bookmaker</th>
+                <th data-sort="competition">Compétition</th>
+                <th data-sort="pays">Pays</th>
+                <th data-sort="saison">Saison</th>
+                <th data-sort="typeDeParis">Type de paris</th>
+                <th data-sort="cote">Côte</th>
+                <th data-sort="montantParie">Misé</th>
+                <th data-sort="credit">Crédit</th>
+                <th data-sort="retrait">Retrait</th>
+                <th data-sort="montantGagne">Gagné</th>
+                <th data-sort="profit">Profit</th>
+                <th data-sort="profitCumule">Cumulé</th>
+                <th>Commentaire</th>
+                <th class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+</div>
+
+<!-- ===== Modal: Add/Edit ===== -->
+<div class="modal-overlay" id="modalOverlay" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Ajouter une entrée</h3>
+      <button class="btn-icon" id="btnCloseModal">✕</button>
+    </div>
+    <form id="entryForm" class="modal-body">
+      <input type="hidden" id="fId">
+
+      <div class="field">
+        <label>Type</label>
+        <div class="segmented" id="typeSegmented">
+          <button type="button" class="seg-btn" data-value="Paris">Paris</button>
+          <button type="button" class="seg-btn" data-value="Paris gratuit">Paris gratuit</button>
+          <button type="button" class="seg-btn" data-value="Dépôt">Dépôt</button>
+          <button type="button" class="seg-btn" data-value="Retrait">Retrait</button>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Date</label>
+          <input type="date" id="fDate" class="input" required>
+        </div>
+        <div class="field">
+          <label>Bookmaker</label>
+          <input type="text" id="fBookmakerInput" class="input" list="listBookmaker" required>
+          <datalist id="listBookmaker"></datalist>
+        </div>
+      </div>
+
+      <div id="betFields">
+        <div class="field">
+          <label>Pari (match / description)</label>
+          <input type="text" id="fParis" class="input" placeholder="ex: PSG/Nantes">
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Compétition</label>
+            <input type="text" id="fCompetitionInput" class="input" list="listCompetition">
+            <datalist id="listCompetition"></datalist>
+          </div>
+          <div class="field">
+            <label>Pays</label>
+            <input type="text" id="fPays" class="input" list="listPays">
+            <datalist id="listPays"></datalist>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Saison</label>
+            <input type="text" id="fSaisonInput" class="input" list="listSaison">
+            <datalist id="listSaison"></datalist>
+          </div>
+          <div class="field">
+            <label>Type de paris</label>
+            <input type="text" id="fTypeDeParis" class="input" list="listTypeDeParis">
+            <datalist id="listTypeDeParis"></datalist>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Côte</label>
+            <input type="number" id="fCote" class="input" step="0.01" min="0">
+          </div>
+          <div class="field">
+            <label>Montant parié</label>
+            <input type="number" id="fMontantParie" class="input" step="0.01" min="0">
+          </div>
+          <div class="field">
+            <label>Résultat</label>
+            <div class="segmented segmented-sm" id="resultSegmented">
+              <button type="button" class="seg-btn seg-btn-green" data-value="gagne">Gagné</button>
+              <button type="button" class="seg-btn seg-btn-red active" data-value="perdu">Perdu</button>
+            </div>
+          </div>
+          <div class="field" id="montantGagneField" hidden>
+            <label>Montant gagné</label>
+            <input type="number" id="fMontantGagne" class="input" step="0.01" min="0">
+          </div>
+        </div>
+      </div>
+
+      <div class="field" id="creditField">
+        <label>Montant du dépôt</label>
+        <input type="number" id="fCredit" class="input" step="0.01" min="0">
+      </div>
+
+      <div class="field" id="retraitField">
+        <label>Montant du retrait</label>
+        <input type="number" id="fRetrait" class="input" step="0.01" min="0">
+      </div>
+
+      <div class="field">
+        <label>Commentaire</label>
+        <textarea id="fCommentaire" class="input" rows="1"></textarea>
+      </div>
+
+    </form>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="btnDelete" hidden>🗑 Supprimer</button>
+      <span class="profit-preview" id="profitPreview" hidden>Profit : <strong id="profitPreviewValue">0,00 €</strong></span>
+      <div class="spacer"></div>
+      <button class="btn btn-ghost" id="btnCancel">Annuler</button>
+      <button class="btn btn-primary" id="btnSave" form="entryForm" type="submit">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal: Settings ===== -->
+<div class="modal-overlay" id="settingsOverlay" hidden>
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>Paramètres — <span id="settingsProfileName">Tom</span></h3>
+      <button class="btn-icon" id="btnCloseSettings">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Bookmakers actifs</label>
+        <div id="bookmakerCheckboxes" class="checkbox-list"></div>
+      </div>
+      <div class="field">
+        <label>Compétitions actives</label>
+        <div id="competitionCheckboxes" class="checkbox-list"></div>
+      </div>
+      <div class="field">
+        <label>Pays actifs</label>
+        <div id="paysCheckboxes" class="checkbox-list"></div>
+      </div>
+      <div class="field">
+        <label>Saisons actives</label>
+        <div id="saisonCheckboxes" class="checkbox-list"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div class="spacer"></div>
+      <button class="btn btn-primary" id="btnSaveSettings">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Toast ===== -->
+<div class="toast" id="toast" hidden></div>
+
+<script src="vendor/xlsx.full.min.js"></script>
+<script src="vendor/chart.umd.min.js"></script>
+<script src="app.js?v=8"></script>
+</body>
+</html>
