@@ -222,7 +222,8 @@ function saveState(autoExport = false) {
 const fileHandles = {};
 
 async function downloadJson() {
-  const data = { profile: currentProfile, state: state };
+  const { entries, ...settings } = state;
+  const data = { profile: currentProfile, state: { ...settings, entries } };
   const json = JSON.stringify(data, null, 2);
   const filename = `bankroll_manager_${currentProfile}.json`;
 

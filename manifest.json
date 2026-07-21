@@ -1,6 +1,6 @@
 {
   "name": "Bankroll Manager",
-  "short_name": "Bankroll",
+  "short_name": "Bankroll Manager",
   "description": "Gestion de bankroll paris sportifs",
   "start_url": "./index.html",
   "display": "standalone",
