@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -240,6 +240,7 @@ async function downloadJson() {
       const writable = await fileHandles[currentProfile].createWritable();
       await writable.write(json);
       await writable.close();
+      markAllExported();
       return;
     } catch (err) {
       if (err.name === 'AbortError') return;
@@ -256,6 +257,13 @@ async function downloadJson() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  markAllExported();
+}
+
+function markAllExported() {
+  for (const e of state.entries) e.exported = true;
+  saveState();
+  refreshAll();
 }
 
 function switchProfile(profile) {
