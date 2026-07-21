@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.2.1';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -878,6 +878,7 @@ entryForm.addEventListener('submit', (e) => {
   }
 
   closeModal();
+  saveState();
   refreshAll();
   downloadJson();
   showToast(isNew ? 'Entrée ajoutée ✅' : 'Entrée mise à jour ✅');
@@ -894,6 +895,7 @@ function deleteEntry(id) {
   if (!entry) return;
   if (!confirm(`Supprimer cette entrée ${entry.type.toLowerCase()} du ${fmtDate(entry.date)} ?`)) return;
   state.entries = state.entries.filter(e => e.id !== id);
+  saveState();
   refreshAll();
   downloadJson();
   showToast('Entrée supprimée 🗑️');
