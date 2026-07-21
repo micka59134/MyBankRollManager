@@ -1,11 +1,10 @@
-const CACHE_NAME = 'bankroll-v1';
+const CACHE_NAME = 'bankroll-v3';
 const ASSETS = [
   './',
   './index.html',
   './app.js',
   './styles.css',
   './manifest.json',
-  './vendor/xlsx.full.min.js',
   './vendor/chart.umd.min.js',
 ];
 

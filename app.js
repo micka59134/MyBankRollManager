@@ -214,8 +214,45 @@ function mergeConstantes(base, extra) {
   return out;
 }
 
-function saveState() {
+function saveState(autoExport = false) {
   localStorage.setItem(storageKeyFor(currentProfile), JSON.stringify(state));
+  if (autoExport) downloadJson();
+}
+
+const fileHandles = {};
+
+async function downloadJson() {
+  const data = { profile: currentProfile, state: state };
+  const json = JSON.stringify(data, null, 2);
+  const filename = `bankroll_manager_${currentProfile}.json`;
+
+  if (window.showSaveFilePicker) {
+    try {
+      if (!fileHandles[currentProfile]) {
+        fileHandles[currentProfile] = await window.showSaveFilePicker({
+          suggestedName: filename,
+          types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }],
+        });
+      }
+      const writable = await fileHandles[currentProfile].createWritable();
+      await writable.write(json);
+      await writable.close();
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      console.warn('File System Access API error, fallback to download', err);
+    }
+  }
+
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function switchProfile(profile) {
@@ -227,7 +264,7 @@ function switchProfile(profile) {
   document.getElementById('fSearch').value = '';
   updateProfileUI();
   refreshAll();
-  trySeedImport(currentProfile);
+
 }
 
 function updateProfileUI() {
@@ -296,28 +333,6 @@ function dateToIsoLocal(d) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-// Numéro de série Excel (jours entiers depuis 1899-12-30) calculé en arithmétique UTC exacte,
-// pour écrire des dates dans le fichier exporté sans passer par un objet Date JS (qui introduirait
-// la même dérive de quelques secondes que celle corrigée côté import, cf. excelDateToIso()).
-const EXCEL_EPOCH_UTC = Date.UTC(1899, 11, 30);
-function isoToExcelSerial(iso) {
-  const [y, m, d] = iso.split('-').map(Number);
-  return Math.round((Date.UTC(y, m - 1, d) - EXCEL_EPOCH_UTC) / 86400000);
-}
-
-// SheetJS date cells (cellDates:true) sometimes carry tiny floating-point noise from
-// the original Excel serial (e.g. 23:59:39 instead of 00:00:00), which shifts the
-// calendar date by a day once local getters are applied. Snap to the nearest UTC-midnight
-// boundary before reading the date back out, using UTC getters throughout so the result
-// never depends on the browser's local timezone.
-function excelDateToIso(d) {
-  const snapped = new Date(Math.round(d.getTime() / 86400000) * 86400000);
-  const y = snapped.getUTCFullYear();
-  const m = String(snapped.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(snapped.getUTCDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
 
@@ -853,6 +868,7 @@ entryForm.addEventListener('submit', (e) => {
 
   closeModal();
   refreshAll();
+  downloadJson();
   showToast(isNew ? 'Entrée ajoutée ✅' : 'Entrée mise à jour ✅');
 });
 
@@ -868,6 +884,7 @@ function deleteEntry(id) {
   if (!confirm(`Supprimer cette entrée ${entry.type.toLowerCase()} du ${fmtDate(entry.date)} ?`)) return;
   state.entries = state.entries.filter(e => e.id !== id);
   refreshAll();
+  downloadJson();
   showToast('Entrée supprimée 🗑️');
 }
 
@@ -880,6 +897,7 @@ document.getElementById('btnDelete').addEventListener('click', () => {
 
 document.getElementById('btnAdd').addEventListener('click', () => openModal());
 document.getElementById('btnAddEmpty').addEventListener('click', () => openModal());
+document.getElementById('btnImportEmpty').addEventListener('click', () => document.getElementById('fileImportJson').click());
 document.getElementById('btnCloseModal').addEventListener('click', closeModal);
 document.getElementById('btnCancel').addEventListener('click', closeModal);
 modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
@@ -944,303 +962,27 @@ function showToast(msg) {
 }
 
 /* =========================================================================
-   Import Excel (.xlsx)
-   ========================================================================= */
-
-const COLUMN_MAP = {
-  'Type': 'type', 'Date': 'date', 'Paris': 'paris', 'Bookmaker': 'bookmaker',
-  'Compétition': 'competition', 'Pays': 'pays', 'Saison': 'saison', 'Type de paris': 'typeDeParis',
-  'Côte': 'cote', 'Montant parié': 'montantParie', 'Crédit': 'credit', 'Retrait': 'retrait',
-  'Montant gagné': 'montantGagne', 'Commentaire': 'commentaire',
-};
-
-document.getElementById('btnImport').addEventListener('click', () => document.getElementById('fileImport').click());
-document.getElementById('btnImportEmpty').addEventListener('click', () => document.getElementById('fileImport').click());
-
-// Parse un classeur XLSX déjà chargé (XLSX.read) en {entries, constantes}, indépendamment
-// de la source (sélection manuelle d'un fichier, ou import automatique par défaut du profil).
-function parseWorkbook(wb) {
-  const sheetName = wb.SheetNames.includes('Paris') ? 'Paris' : wb.SheetNames[0];
-  const ws = wb.Sheets[sheetName];
-  if (!ws) throw new Error('Feuille "Paris" introuvable dans le fichier.');
-
-  const rows = XLSX.utils.sheet_to_json(ws, { defval: null, raw: true });
-  if (!rows.length) throw new Error('Aucune donnée trouvée dans la feuille "Paris".');
-
-  const entries = [];
-  let order = 1;
-  for (const row of rows) {
-    const VALID_TYPES = ['Paris', 'Paris gratuit', 'Dépôt', 'Retrait'];
-    const type = row['Type'] != null ? String(row['Type']).trim() : '';
-    if (!type || !VALID_TYPES.includes(type)) continue;
-    const dateVal = row['Date'];
-    const date = dateVal instanceof Date ? excelDateToIso(dateVal) :
-      (typeof dateVal === 'string' && dateVal ? dateVal : todayIso());
-
-    entries.push({
-      id: crypto.randomUUID(),
-      order: order++,
-      type,
-      date,
-      paris: row['Paris'] || null,
-      bookmaker: row['Bookmaker'] || null,
-      competition: row['Compétition'] || null,
-      pays: row['Pays'] || null,
-      saison: row['Saison'] || null,
-      typeDeParis: row['Type de paris'] || null,
-      cote: numOrNull(row['Côte']),
-      montantParie: numOrNull(row['Montant parié']),
-      credit: numOrNull(row['Crédit']),
-      retrait: numOrNull(row['Retrait']),
-      montantGagne: numOrNull(row['Montant gagné']),
-      commentaire: row['Commentaire'] || null,
-      exported: true,
-    });
-  }
-
-  if (!entries.length) throw new Error('Aucune ligne de pari/dépôt/retrait valide n\'a été trouvée.');
-
-  const constantes = cloneConstantes(DEFAULT_CONSTANTES);
-  if (wb.SheetNames.includes('Constantes')) {
-    const cws = wb.Sheets['Constantes'];
-    const aoa = XLSX.utils.sheet_to_json(cws, { header: 1, defval: null });
-    const colIndexFor = (label) => {
-      for (const r of aoa) {
-        const idx = r.findIndex(v => v === label);
-        if (idx !== -1) return idx;
-      }
-      return -1;
-    };
-    const readCol = (label) => {
-      const idx = colIndexFor(label);
-      if (idx === -1) return [];
-      const headerRow = aoa.findIndex(r => r.includes(label));
-      return aoa.slice(headerRow + 1).map(r => r[idx]).filter(v => v !== null && v !== undefined && v !== '');
-    };
-    constantes.bookmakers = readCol('Bookmakers');
-    constantes.competitions = readCol('Compétition');
-    constantes.saisons = readCol('Saison');
-    constantes.pays = readCol('Pays');
-    constantes.typesDeParis = readCol('Type de paris');
-  }
-
-  return { entries, order, constantes };
-}
-
-document.getElementById('fileImport').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  e.target.value = '';
-  if (!file) return;
-  try {
-    const buf = await file.arrayBuffer();
-    const wb = XLSX.read(buf, { type: 'array', cellDates: true });
-    const { entries: importedEntries, order, constantes: importedConstantes } = parseWorkbook(wb);
-
-    const doReplace = state.entries.length === 0 || confirm(
-      `${importedEntries.length} entrées trouvées dans "${file.name}".\n\n` +
-      `OK = Remplacer les données actuelles\nAnnuler = Fusionner (ajouter à la suite)`
-    );
-
-    if (doReplace) {
-      state.entries = importedEntries;
-      state.nextOrder = order;
-      state.constantes = mergeConstantes(DEFAULT_CONSTANTES, importedConstantes);
-    } else {
-      const offset = state.nextOrder;
-      for (const en of importedEntries) en.order = offset + en.order;
-      state.entries.push(...importedEntries);
-      state.nextOrder = offset + order;
-      state.constantes = mergeConstantes(state.constantes, importedConstantes);
-    }
-
-    refreshAll();
-    showToast(`Import réussi : ${importedEntries.length} entrées chargées ✅`);
-  } catch (err) {
-    console.error(err);
-    alert('Erreur lors de l\'import : ' + err.message);
-  }
-});
-
-function numOrNull(v) {
-  if (v === null || v === undefined || v === '') return null;
-  const n = Number(v);
-  return isNaN(n) ? null : n;
-}
-
-/* =========================================================================
-   Import automatique par défaut (fichier "seed" par profil)
-   ========================================================================= */
-
-const SEED_FILES = {
-  Tom: 'data/bankroll_manager_data_Tom.xlsx',
-  Micka: 'data/bankroll_manager_data_Micka.xlsx',
-};
-
-function seedFlagKey(profile) {
-  return `bankrollManager.seeded.${profile}`;
-}
-
-// Au tout premier usage d'un profil (aucune entrée, jamais importé), tente de charger
-// automatiquement son fichier Excel par défaut depuis le dossier data/ de l'application.
-// N'écrase jamais des données déjà présentes, et ne retente qu'une seule fois par profil
-// (pour respecter une suppression volontaire ultérieure de toutes les entrées).
-async function trySeedImport(profile) {
-  if (state.entries.length > 0) return;
-  if (localStorage.getItem(seedFlagKey(profile))) return;
-  const path = SEED_FILES[profile];
-  if (!path) return;
-
-  localStorage.setItem(seedFlagKey(profile), 'true');
-  try {
-    const resp = await fetch(path);
-    if (!resp.ok) return;
-    const buf = await resp.arrayBuffer();
-    const wb = XLSX.read(buf, { type: 'array', cellDates: true });
-    const { entries, order, constantes } = parseWorkbook(wb);
-
-    if (profile !== currentProfile || state.entries.length > 0) return; // le contexte a changé entre-temps
-
-    state.entries = entries;
-    state.nextOrder = order;
-    state.constantes = mergeConstantes(DEFAULT_CONSTANTES, constantes);
-    refreshAll();
-    showToast(`Données par défaut chargées pour ${profile} ✅`);
-  } catch (err) {
-    console.warn(`Import par défaut impossible pour ${profile} :`, err);
-  }
-}
-
-/* =========================================================================
-   Export Excel (.xlsx)
-   ========================================================================= */
-
-document.getElementById('btnExport').addEventListener('click', exportXlsx);
-
-function exportXlsx() {
-  if (!state.entries.length) { alert('Aucune donnée à exporter.'); return; }
-  const ordered = [...state.entries].sort((a, b) => a.order - b.order);
-
-  const headers = ['Type', 'Date', 'Paris', 'Bookmaker', 'Compétition', 'Pays', 'Saison', 'Type de paris',
-    'Côte', 'Montant parié', 'Crédit', 'Retrait', 'Montant gagné', 'Profit',
-    'Commentaire'];
-
-  // La date est laissée vide ici : on l'écrit comme numéro de série Excel entier ci-dessous, car
-  // passer par un objet Date JS fait dériver SheetJS de quelques secondes (bug connu de virgule flottante).
-  const aoa = [headers];
-  for (const e of ordered) {
-    aoa.push([
-      e.type, null, e.paris, e.bookmaker, e.competition, e.pays,
-      e.saison, e.typeDeParis, e.cote, e.montantParie, e.credit, e.retrait, e.montantGagne,
-      null, e.commentaire,
-    ]);
-  }
-
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-
-  const colLetters = { type: 'A', date: 'B', paris: 'C', bookmaker: 'D', competition: 'E', pays: 'F',
-    saison: 'G', typeDeParis: 'H', cote: 'I', montantParie: 'J', credit: 'K', retrait: 'L',
-    montantGagne: 'M', profit: 'N', commentaire: 'O' };
-
-  ordered.forEach((e, i) => {
-    const r = i + 2; // ligne Excel (1-indexed, ligne 1 = headers)
-    // Profit : uniquement pour les paris (formule), vide pour Dépôt/Retrait
-    if (BET_TYPES.has(e.type)) {
-      ws[`${colLetters.profit}${r}`] = {
-        t: 'n',
-        f: `IF(${colLetters.type}${r}="Paris gratuit",${colLetters.montantGagne}${r},${colLetters.montantGagne}${r}-${colLetters.montantParie}${r})`,
-        v: e.profit,
-      };
-    }
-    // Date : numéro de série Excel entier (jours depuis 1899-12-30), calculé en UTC pour
-    // rester exact et indépendant du fuseau horaire local — voir isoToExcelSerial().
-    if (e.date) {
-      ws[`B${r}`] = { t: 'n', v: isoToExcelSerial(e.date), z: 'dd/mm/yyyy' };
-    }
-  });
-
-  ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: ordered.length, c: 14 } });
-  ws['!cols'] = [
-    { wch: 14 }, { wch: 11 }, { wch: 28 }, { wch: 14 }, { wch: 20 }, { wch: 12 },
-    { wch: 11 }, { wch: 13 }, { wch: 8 }, { wch: 10 }, { wch: 9 }, { wch: 9 }, { wch: 10 },
-    { wch: 9 }, { wch: 30 },
-  ];
-  ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: ordered.length, c: 14 } }) };
-
-  // Feuille Constantes
-  const c = state.constantes;
-  const maxLen = Math.max(TYPES.length, c.bookmakers.length, c.competitions.length, c.saisons.length, c.pays.length, c.typesDeParis.length);
-  const cAoa = [['Type', null, 'Bookmakers', null, 'Compétition', null, 'Saison', null, 'Pays', null, 'Type de paris']];
-  for (let i = 0; i < maxLen; i++) {
-    cAoa.push([
-      TYPES[i] || null, null,
-      c.bookmakers[i] || null, null,
-      c.competitions[i] || null, null,
-      c.saisons[i] || null, null,
-      c.pays[i] || null, null,
-      c.typesDeParis[i] || null,
-    ]);
-  }
-  const cws = XLSX.utils.aoa_to_sheet(cAoa);
-  cws['!cols'] = [{ wch: 14 }, { wch: 2 }, { wch: 16 }, { wch: 2 }, { wch: 22 }, { wch: 2 }, { wch: 12 }, { wch: 2 }, { wch: 14 }, { wch: 2 }, { wch: 14 }];
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Paris');
-  XLSX.utils.book_append_sheet(wb, cws, 'Constantes');
-
-  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  const blob = new Blob([wbout], { type: 'application/octet-stream' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `bankroll_manager_data_${currentProfile}.xlsx`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  state.entries.forEach(e => e.exported = true);
-  saveState();
-  refreshAll();
-  showToast('Export généré ✅');
-}
-
-/* =========================================================================
    Settings modal
    ========================================================================= */
 
+function renderSettingsSection(containerId, countId, items, activeSet, prefix) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = items.map((v, i) => `
+    <div class="checkbox-item">
+      <input type="checkbox" id="${prefix}${i}" value="${escapeHtml(v)}" ${activeSet.has(v) ? 'checked' : ''}>
+      <label for="${prefix}${i}">${escapeHtml(v)}</label>
+    </div>
+  `).join('');
+  const count = items.filter(v => activeSet.has(v)).length;
+  document.getElementById(countId).textContent = `${count}/${items.length}`;
+}
+
 function openSettings() {
   document.getElementById('settingsProfileName').textContent = currentProfile;
-  const bkContainer = document.getElementById('bookmakerCheckboxes');
-  const activeBk = new Set(state.activeBookmakers || []);
-  bkContainer.innerHTML = state.constantes.bookmakers.map((b, i) => `
-    <div class="checkbox-item">
-      <input type="checkbox" id="chkBk${i}" value="${escapeHtml(b)}" ${activeBk.has(b) ? 'checked' : ''}>
-      <label for="chkBk${i}">${escapeHtml(b)}</label>
-    </div>
-  `).join('');
-  const compContainer = document.getElementById('competitionCheckboxes');
-  const activeComp = new Set(state.activeCompetitions || []);
-  compContainer.innerHTML = state.constantes.competitions.map((c, i) => `
-    <div class="checkbox-item">
-      <input type="checkbox" id="chkComp${i}" value="${escapeHtml(c)}" ${activeComp.has(c) ? 'checked' : ''}>
-      <label for="chkComp${i}">${escapeHtml(c)}</label>
-    </div>
-  `).join('');
-  const paysContainer = document.getElementById('paysCheckboxes');
-  const activePays = new Set(state.activePays || []);
-  paysContainer.innerHTML = state.constantes.pays.map((p, i) => `
-    <div class="checkbox-item">
-      <input type="checkbox" id="chkPays${i}" value="${escapeHtml(p)}" ${activePays.has(p) ? 'checked' : ''}>
-      <label for="chkPays${i}">${escapeHtml(p)}</label>
-    </div>
-  `).join('');
-  const saisonContainer = document.getElementById('saisonCheckboxes');
-  const activeSaisons = new Set(state.activeSaisons || []);
-  saisonContainer.innerHTML = state.constantes.saisons.map((s, i) => `
-    <div class="checkbox-item">
-      <input type="checkbox" id="chkSaison${i}" value="${escapeHtml(s)}" ${activeSaisons.has(s) ? 'checked' : ''}>
-      <label for="chkSaison${i}">${escapeHtml(s)}</label>
-    </div>
-  `).join('');
+  renderSettingsSection('bookmakerCheckboxes', 'countBookmakers', state.constantes.bookmakers, new Set(state.activeBookmakers || []), 'chkBk');
+  renderSettingsSection('competitionCheckboxes', 'countCompetitions', state.constantes.competitions, new Set(state.activeCompetitions || []), 'chkComp');
+  renderSettingsSection('paysCheckboxes', 'countPays', state.constantes.pays, new Set(state.activePays || []), 'chkPays');
+  renderSettingsSection('saisonCheckboxes', 'countSaisons', state.constantes.saisons, new Set(state.activeSaisons || []), 'chkSaison');
   document.getElementById('settingsOverlay').hidden = false;
 }
 
@@ -1263,11 +1005,82 @@ function saveSettings() {
   showToast('Paramètres enregistrés ✅');
 }
 
+function addSettingsItem(inputId, constKey, activeKey, checkboxesId) {
+  const input = document.getElementById(inputId);
+  const value = input.value.trim();
+  if (!value) return;
+  if (state.constantes[constKey].includes(value)) {
+    showToast('Cette valeur existe déjà');
+    return;
+  }
+  state.constantes[constKey].push(value);
+  state.constantes[constKey].sort((a, b) => a.localeCompare(b, 'fr'));
+  if (!state[activeKey]) state[activeKey] = [];
+  state[activeKey].push(value);
+  saveState();
+  input.value = '';
+  openSettings();
+}
+
+document.getElementById('btnAddBookmaker').addEventListener('click', () => addSettingsItem('newBookmaker', 'bookmakers', 'activeBookmakers', 'bookmakerCheckboxes'));
+document.getElementById('btnAddCompetition').addEventListener('click', () => addSettingsItem('newCompetition', 'competitions', 'activeCompetitions', 'competitionCheckboxes'));
+document.getElementById('btnAddPays').addEventListener('click', () => addSettingsItem('newPays', 'pays', 'activePays', 'paysCheckboxes'));
+document.getElementById('btnAddSaison').addEventListener('click', () => addSettingsItem('newSaison', 'saisons', 'activeSaisons', 'saisonCheckboxes'));
+
 document.getElementById('btnSettings').addEventListener('click', openSettings);
 document.getElementById('btnCloseSettings').addEventListener('click', closeSettings);
+document.getElementById('btnCancelSettings').addEventListener('click', closeSettings);
 document.getElementById('btnSaveSettings').addEventListener('click', saveSettings);
 document.getElementById('settingsOverlay').addEventListener('click', (e) => {
   if (e.target === e.currentTarget) closeSettings();
+});
+
+/* =========================================================================
+   Export / Import JSON
+   ========================================================================= */
+
+async function exportJson() {
+  await downloadJson();
+  showToast('Export JSON généré ✅');
+}
+
+function importJson(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.state || !Array.isArray(data.state.entries)) {
+        showToast('Fichier JSON invalide ❌');
+        return;
+      }
+      const profile = data.profile || currentProfile;
+      if (profile !== currentProfile) {
+        switchProfile(profile);
+      }
+      state.entries = data.state.entries;
+      state.constantes = mergeConstantes(DEFAULT_CONSTANTES, data.state.constantes || {});
+      state.nextOrder = data.state.nextOrder || state.entries.length + 1;
+      if (data.state.activeBookmakers) state.activeBookmakers = data.state.activeBookmakers;
+      if (data.state.activeCompetitions) state.activeCompetitions = data.state.activeCompetitions;
+      if (data.state.activePays) state.activePays = data.state.activePays;
+      if (data.state.activeSaisons) state.activeSaisons = data.state.activeSaisons;
+      saveState();
+      refreshAll();
+      downloadJson();
+      showToast(`Import JSON : ${state.entries.length} entrées pour ${profile} ✅`);
+    } catch (err) {
+      showToast('Erreur lors de l\'import JSON ❌');
+      console.error(err);
+    }
+  };
+  reader.readAsText(file);
+}
+
+document.getElementById('btnExportJson').addEventListener('click', exportJson);
+document.getElementById('btnImportJson').addEventListener('click', () => document.getElementById('fileImportJson').click());
+document.getElementById('fileImportJson').addEventListener('change', (e) => {
+  if (e.target.files[0]) importJson(e.target.files[0]);
+  e.target.value = '';
 });
 
 /* =========================================================================

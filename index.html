@@ -8,7 +8,7 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f46e5">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=9">
+<link rel="stylesheet" href="styles.css?v=11">
 </head>
 <body>
 
@@ -26,9 +26,9 @@
     <div class="topbar-right">
       <button class="btn btn-ghost" id="btnSettings" title="Paramètres">⚙️</button>
       <button class="btn btn-ghost" id="btnTheme" title="Changer de thème">🌙</button>
-      <input type="file" id="fileImport" accept=".xlsx" hidden>
-      <button class="btn btn-ghost" id="btnImport">📥 Importer</button>
-      <button class="btn btn-ghost" id="btnExport">📤 Exporter</button>
+      <input type="file" id="fileImportJson" accept=".json" hidden>
+      <button class="btn btn-ghost" id="btnImportJson">📥 Importer</button>
+      <button class="btn btn-ghost" id="btnExportJson">📤 Exporter</button>
       <button class="btn btn-primary" id="btnAdd">+ Ajouter</button>
     </div>
   </header>
@@ -40,9 +40,9 @@
       <div class="empty-card">
         <div class="empty-icon">📊</div>
         <h2>Aucune donnée pour <span id="emptyProfileName">Tom</span></h2>
-        <p>Importez un fichier <code>bankroll_manager_data.xlsx</code> existant, ou commencez à ajouter des paris manuellement. Ce profil a ses propres données, indépendantes de l'autre profil.</p>
+        <p>Importez un fichier JSON existant, ou commencez à ajouter des paris manuellement. Ce profil a ses propres données, indépendantes de l'autre profil.</p>
         <div class="empty-actions">
-          <button class="btn btn-primary" id="btnImportEmpty">📥 Importer un fichier Excel</button>
+          <button class="btn btn-primary" id="btnImportEmpty">📥 Importer un fichier JSON</button>
           <button class="btn btn-secondary" id="btnAddEmpty">+ Ajouter une entrée</button>
         </div>
       </div>
@@ -254,31 +254,53 @@
 
 <!-- ===== Modal: Settings ===== -->
 <div class="modal-overlay" id="settingsOverlay" hidden>
-  <div class="modal modal-sm">
+  <div class="modal modal-settings">
     <div class="modal-header">
       <h3>Paramètres — <span id="settingsProfileName">Tom</span></h3>
       <button class="btn-icon" id="btnCloseSettings">✕</button>
     </div>
     <div class="modal-body">
-      <div class="field">
-        <label>Bookmakers actifs</label>
-        <div id="bookmakerCheckboxes" class="checkbox-list"></div>
-      </div>
-      <div class="field">
-        <label>Compétitions actives</label>
-        <div id="competitionCheckboxes" class="checkbox-list"></div>
-      </div>
-      <div class="field">
-        <label>Pays actifs</label>
-        <div id="paysCheckboxes" class="checkbox-list"></div>
-      </div>
-      <div class="field">
-        <label>Saisons actives</label>
-        <div id="saisonCheckboxes" class="checkbox-list"></div>
-      </div>
+      <p class="settings-hint">Cochez les éléments que vous utilisez. Seuls les éléments actifs apparaissent dans les filtres et le formulaire d'ajout.</p>
+
+      <details class="settings-section" open>
+        <summary>🏢 Bookmakers <span class="settings-count" id="countBookmakers"></span></summary>
+        <div id="bookmakerCheckboxes" class="checkbox-grid"></div>
+        <div class="add-item-row">
+          <input type="text" id="newBookmaker" class="input input-sm" placeholder="Ajouter un bookmaker…">
+          <button type="button" class="btn btn-ghost btn-sm" id="btnAddBookmaker">+</button>
+        </div>
+      </details>
+
+      <details class="settings-section">
+        <summary>🏆 Compétitions <span class="settings-count" id="countCompetitions"></span></summary>
+        <div id="competitionCheckboxes" class="checkbox-grid"></div>
+        <div class="add-item-row">
+          <input type="text" id="newCompetition" class="input input-sm" placeholder="Ajouter une compétition…">
+          <button type="button" class="btn btn-ghost btn-sm" id="btnAddCompetition">+</button>
+        </div>
+      </details>
+
+      <details class="settings-section">
+        <summary>🌍 Pays <span class="settings-count" id="countPays"></span></summary>
+        <div id="paysCheckboxes" class="checkbox-grid"></div>
+        <div class="add-item-row">
+          <input type="text" id="newPays" class="input input-sm" placeholder="Ajouter un pays…">
+          <button type="button" class="btn btn-ghost btn-sm" id="btnAddPays">+</button>
+        </div>
+      </details>
+
+      <details class="settings-section">
+        <summary>📅 Saisons <span class="settings-count" id="countSaisons"></span></summary>
+        <div id="saisonCheckboxes" class="checkbox-grid"></div>
+        <div class="add-item-row">
+          <input type="text" id="newSaison" class="input input-sm" placeholder="Ajouter une saison…">
+          <button type="button" class="btn btn-ghost btn-sm" id="btnAddSaison">+</button>
+        </div>
+      </details>
     </div>
     <div class="modal-footer">
       <div class="spacer"></div>
+      <button class="btn btn-ghost" id="btnCancelSettings">Annuler</button>
       <button class="btn btn-primary" id="btnSaveSettings">Enregistrer</button>
     </div>
   </div>
@@ -287,9 +309,8 @@
 <!-- ===== Toast ===== -->
 <div class="toast" id="toast" hidden></div>
 
-<script src="vendor/xlsx.full.min.js"></script>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=8"></script>
+<script src="app.js?v=11"></script>
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js');</script>
 </body>
 </html>
