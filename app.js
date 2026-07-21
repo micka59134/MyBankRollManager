@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -224,7 +224,7 @@ function saveState(autoExport = false) {
 const fileHandles = {};
 
 async function downloadJson() {
-  const { entries, ...settings } = state;
+  const { entries, constantes, ...settings } = state;
   const data = { profile: currentProfile, state: { ...settings, entries } };
   const json = JSON.stringify(data, null, 2);
   const filename = `bankroll_manager_${currentProfile}.json`;
@@ -1067,6 +1067,11 @@ function importJson(file) {
       if (data.state.activeCompetitions) state.activeCompetitions = data.state.activeCompetitions;
       if (data.state.activePays) state.activePays = data.state.activePays;
       if (data.state.activeSaisons) state.activeSaisons = data.state.activeSaisons;
+      const merge = (constList, activeList) => { for (const v of activeList) { if (!constList.some(c => c.toLowerCase() === v.toLowerCase())) constList.push(v); } constList.sort((a, b) => a.localeCompare(b, 'fr')); };
+      merge(state.constantes.bookmakers, state.activeBookmakers);
+      merge(state.constantes.competitions, state.activeCompetitions);
+      merge(state.constantes.pays, state.activePays);
+      merge(state.constantes.saisons, state.activeSaisons);
       saveState();
       refreshAll();
       downloadJson();
