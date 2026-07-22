@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.4.0';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -578,7 +578,7 @@ function renderTable() {
   const tbody = document.getElementById('tableBody');
 
   if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="17" style="text-align:center; padding: 32px; color: var(--text-muted);">Aucune entrée ne correspond aux filtres.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="15" style="text-align:center; padding: 32px; color: var(--text-muted);">Aucune entrée ne correspond aux filtres.</td></tr>`;
     return;
   }
 
@@ -604,8 +604,6 @@ function renderTable() {
       <td>${escapeHtml(e.typeDeParis || '—')}</td>
       <td>${e.cote != null ? Number(e.cote).toLocaleString('fr-FR', { minimumFractionDigits: 2 }) : '—'}</td>
       <td>${e.montantParie != null ? fmtMoney(e.montantParie) : '—'}</td>
-      <td>${e.credit != null ? fmtMoney(e.credit) : '—'}</td>
-      <td>${e.retrait != null ? fmtMoney(e.retrait) : '—'}</td>
       <td class="${gagneCls}">${gagneText}</td>
       <td class="${profitCls}">${e.profit === null ? '—' : fmtMoney(e.profit)}</td>
       <td class="${cumuleCls}">${fmtMoney(e.profitCumule)}</td>
