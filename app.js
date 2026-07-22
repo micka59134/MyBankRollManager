@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '1.4.1';
+const APP_VERSION = '1.5.0';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -202,7 +202,8 @@ const fileHandles = {};
 
 async function downloadJson() {
   const { entries, constantes, ...settings } = state;
-  const data = { profile: currentProfile, state: { ...settings, entries } };
+  const exportedAt = new Date().toISOString();
+  const data = { profile: currentProfile, exportedAt, state: { ...settings, entries } };
   const json = JSON.stringify(data, null, 2);
   const filename = `bankroll_manager_${currentProfile}.json`;
 
@@ -239,6 +240,7 @@ async function downloadJson() {
 
 function markAllExported() {
   for (const e of state.entries) e.exported = true;
+  state.lastExportedAt = new Date().toISOString();
   saveState();
   refreshAll();
 }
@@ -934,12 +936,12 @@ document.getElementById('btnTheme').addEventListener('click', () => {
    ========================================================================= */
 
 let toastTimer = null;
-function showToast(msg) {
+function showToast(msg, duration = 2600) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.hidden = true; }, 2600);
+  toastTimer = setTimeout(() => { t.hidden = true; }, duration);
 }
 
 /* =========================================================================
@@ -1025,6 +1027,13 @@ async function exportJson() {
   showToast('Export JSON généré ✅');
 }
 
+function fmtDateTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
+    ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+}
+
 function importJson(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -1034,6 +1043,14 @@ function importJson(file) {
         showToast('Fichier JSON invalide ❌');
         return;
       }
+
+      const fileExportedAt = data.exportedAt || null;
+      const localExportedAt = state.lastExportedAt || null;
+
+      if (localExportedAt && fileExportedAt && fileExportedAt < localExportedAt) {
+        if (!confirm(`⚠️ Ce fichier date du ${fmtDateTime(fileExportedAt)}.\nVos données locales sont plus récentes (${fmtDateTime(localExportedAt)}).\n\nImporter quand même ?`)) return;
+      }
+
       const profile = data.profile || currentProfile;
       if (profile !== currentProfile) {
         switchProfile(profile);
@@ -1045,6 +1062,7 @@ function importJson(file) {
       if (data.state.activeCompetitions) state.activeCompetitions = data.state.activeCompetitions;
       if (data.state.activePays) state.activePays = data.state.activePays;
       if (data.state.activeSaisons) state.activeSaisons = data.state.activeSaisons;
+      state.lastExportedAt = fileExportedAt;
       const merge = (constList, activeList) => { for (const v of activeList) { if (!constList.some(c => c.toLowerCase() === v.toLowerCase())) constList.push(v); } constList.sort((a, b) => a.localeCompare(b, 'fr')); };
       merge(state.constantes.bookmakers, state.activeBookmakers);
       merge(state.constantes.competitions, state.activeCompetitions);
@@ -1053,7 +1071,18 @@ function importJson(file) {
       saveState();
       refreshAll();
       downloadJson();
-      showToast(`Import JSON : ${state.entries.length} entrées pour ${profile} ✅`);
+
+      let freshness = '';
+      if (!fileExportedAt) {
+        freshness = ' (ancien format, sans date)';
+      } else if (!localExportedAt) {
+        freshness = ` — fichier du ${fmtDateTime(fileExportedAt)}`;
+      } else if (fileExportedAt >= localExportedAt) {
+        freshness = ` — fichier plus récent ✅ (${fmtDateTime(fileExportedAt)})`;
+      } else {
+        freshness = ` — fichier plus ancien ⚠️ (${fmtDateTime(fileExportedAt)})`;
+      }
+      showToast(`Import : ${state.entries.length} entrées pour ${profile}${freshness}`, 5000);
     } catch (err) {
       showToast('Erreur lors de l\'import JSON ❌');
       console.error(err);
