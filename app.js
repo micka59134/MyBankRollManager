@@ -1,10 +1,29 @@
 'use strict';
 
-const APP_VERSION = '1.6.2';
+const APP_VERSION = '2.0.0';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
    ========================================================================= */
+
+/* ===== Firebase ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyDK2-wi58ybqcqWZbj8FR4lU9kY-qoG2_Q",
+  authDomain: "bankroll-manager-b6dbc.firebaseapp.com",
+  projectId: "bankroll-manager-b6dbc",
+  storageBucket: "bankroll-manager-b6dbc.firebasestorage.app",
+  messagingSenderId: "825093885724",
+  appId: "1:825093885724:web:c26f97efe9eff5149cb4d9"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let firestoreUpdating = false;
+let firestoreUnsubscribe = null;
+let firestoreConnected = false;
+let saveTimer = null;
+const SAVE_DEBOUNCE = 1500;
 
 const PROFILE_STORAGE_KEY = 'bankrollManager.profile';
 const PROFILES = ['Tom', 'Micka'];
@@ -168,7 +187,7 @@ function loadState(profile) {
       parsed.constantes = mergeConstantes(DEFAULT_CONSTANTES, parsed.constantes || {});
       for (const e of parsed.entries || []) {
         if (e.pays === undefined) e.pays = null;
-        if (e.exported === undefined) e.exported = true;
+        delete e.exported;
       }
       if (!parsed.activeBookmakers) parsed.activeBookmakers = [...parsed.constantes.bookmakers];
       if (!parsed.activeCompetitions) parsed.activeCompetitions = [...parsed.constantes.competitions];
@@ -193,56 +212,102 @@ function mergeConstantes(base, extra) {
   return out;
 }
 
-function saveState(autoExport = false) {
+function saveState() {
   localStorage.setItem(storageKeyFor(currentProfile), JSON.stringify(state));
-  if (autoExport) downloadJson();
-}
-
-const fileHandles = {};
-
-async function downloadJson() {
-  const { entries, constantes, ...settings } = state;
-  const exportedAt = new Date().toISOString();
-  const data = { profile: currentProfile, exportedAt, state: { ...settings, entries } };
-  const json = JSON.stringify(data, null, 2);
-  const filename = `bankroll_manager_${currentProfile}.json`;
-
-  if (window.showSaveFilePicker) {
-    try {
-      if (!fileHandles[currentProfile]) {
-        fileHandles[currentProfile] = await window.showSaveFilePicker({
-          suggestedName: filename,
-          types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }],
-        });
-      }
-      const writable = await fileHandles[currentProfile].createWritable();
-      await writable.write(json);
-      await writable.close();
-      markAllExported();
-      return;
-    } catch (err) {
-      if (err.name === 'AbortError') return;
-      console.warn('File System Access API error, fallback to download', err);
-    }
+  if (!firestoreUpdating) {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveToFirestore(), SAVE_DEBOUNCE);
   }
-
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  markAllExported();
 }
 
-function markAllExported() {
-  for (const e of state.entries) e.exported = true;
-  state.lastExportedAt = new Date().toISOString();
-  saveState();
-  refreshAll();
+function stateForFirestore() {
+  const { constantes, ...rest } = state;
+  const entries = (rest.entries || []).map(e => {
+    const { profit, profitCumule, exported, ...clean } = e;
+    return clean;
+  });
+  return {
+    entries,
+    activeBookmakers: rest.activeBookmakers || [],
+    activeCompetitions: rest.activeCompetitions || [],
+    activePays: rest.activePays || [],
+    activeSaisons: rest.activeSaisons || [],
+    nextOrder: rest.nextOrder || 1,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  };
+}
+
+async function saveToFirestore() {
+  try {
+    await db.collection('profiles').doc(currentProfile).set(stateForFirestore());
+    firestoreConnected = true;
+    updateSyncStatus();
+  } catch (err) {
+    console.error('Firestore save error', err);
+    firestoreConnected = false;
+    updateSyncStatus();
+  }
+}
+
+function applyFirestoreData(data) {
+  firestoreUpdating = true;
+  state.entries = data.entries || [];
+  for (const e of state.entries) {
+    if (e.pays === undefined) e.pays = null;
+    delete e.exported;
+  }
+  state.activeBookmakers = data.activeBookmakers || [...DEFAULT_CONSTANTES.bookmakers];
+  state.activeCompetitions = data.activeCompetitions || [...DEFAULT_CONSTANTES.competitions];
+  state.activePays = data.activePays || [...DEFAULT_CONSTANTES.pays];
+  state.activeSaisons = data.activeSaisons || [...DEFAULT_CONSTANTES.saisons];
+  state.nextOrder = data.nextOrder || state.entries.length + 1;
+  state.constantes = mergeConstantes(DEFAULT_CONSTANTES, {});
+  const merge = (constList, activeList) => {
+    for (const v of activeList) {
+      if (!constList.some(c => c.toLowerCase() === v.toLowerCase())) constList.push(v);
+    }
+    constList.sort((a, b) => a.localeCompare(b, 'fr'));
+  };
+  merge(state.constantes.bookmakers, state.activeBookmakers);
+  merge(state.constantes.competitions, state.activeCompetitions);
+  merge(state.constantes.pays, state.activePays);
+  merge(state.constantes.saisons, state.activeSaisons);
+  localStorage.setItem(storageKeyFor(currentProfile), JSON.stringify(state));
+  firestoreUpdating = false;
+}
+
+function startFirestoreListener(profile) {
+  if (firestoreUnsubscribe) firestoreUnsubscribe();
+  firestoreUnsubscribe = db.collection('profiles').doc(profile).onSnapshot(
+    (doc) => {
+      firestoreConnected = true;
+      if (doc.exists) {
+        const data = doc.data();
+        if (!firestoreUpdating) {
+          applyFirestoreData(data);
+          refreshAllFromFirestore();
+        }
+      } else if (state.entries.length > 0) {
+        saveToFirestore();
+      }
+      updateSyncStatus();
+    },
+    (err) => {
+      console.error('Firestore listener error', err);
+      firestoreConnected = false;
+      updateSyncStatus();
+    }
+  );
+}
+
+function refreshAllFromFirestore() {
+  computeDerivedFields(state.entries);
+  document.getElementById('emptyState').hidden = state.entries.length !== 0;
+  document.getElementById('mainView').hidden = state.entries.length === 0;
+  updateSyncStatus();
+  if (state.entries.length === 0) return;
+  populateFilterOptions();
+  applyFilters();
 }
 
 function switchProfile(profile) {
@@ -254,6 +319,7 @@ function switchProfile(profile) {
   document.getElementById('fSearch').value = '';
   updateProfileUI();
   refreshAll();
+  startFirestoreListener(profile);
 }
 
 function updateProfileUI() {
@@ -595,7 +661,7 @@ function renderTable() {
       gagneText = e.montantGagne != null ? fmtMoney(e.montantGagne) : 'Perdu';
     }
     return `
-    <tr data-id="${e.id}"${e.exported === false ? ' class="row-unsaved"' : ''}>
+    <tr data-id="${e.id}">
       <td><span class="pill pill-${e.type.replace(/\s/g, '-')}">${escapeHtml(e.type)}</span></td>
       <td>${fmtDate(e.date)}</td>
       <td class="cell-pari" title="${escapeHtml(e.paris || '')}">${escapeHtml(e.paris || '—')}</td>
@@ -632,24 +698,18 @@ function escapeHtml(s) {
    Rendu global
    ========================================================================= */
 
-function updateSyncDot() {
-  const dot = document.getElementById('syncDot');
-  const footerSync = document.getElementById('footerSync');
-  const hasUnsaved = state.entries.some(e => e.exported === false);
-  const lastDate = state.lastExportedAt ? fmtDateTime(state.lastExportedAt) : 'jamais';
-
-  if (!state.entries.length) {
-    dot.hidden = true;
+function updateSyncStatus() {
+  const dot = document.getElementById('syncDot2');
+  const label = document.getElementById('footerSyncLabel');
+  if (!dot || !label) return;
+  dot.hidden = false;
+  if (firestoreConnected) {
+    dot.className = 'sync-dot sync-ok';
+    label.textContent = 'Synchronisé';
   } else {
-    dot.hidden = false;
-    dot.className = 'sync-dot ' + (hasUnsaved ? 'sync-warn' : 'sync-ok');
-    dot.title = hasUnsaved
-      ? `Modifications locales non exportées\nDernier export : ${lastDate}`
-      : `Données synchronisées\nDernier export : ${lastDate}`;
+    dot.className = 'sync-dot sync-warn';
+    label.textContent = 'Hors ligne';
   }
-
-  footerSync.hidden = false;
-  document.getElementById('footerLocalDate').textContent = lastDate;
 }
 
 function refreshAll() {
@@ -657,7 +717,7 @@ function refreshAll() {
   saveState();
   document.getElementById('emptyState').hidden = state.entries.length !== 0;
   document.getElementById('mainView').hidden = state.entries.length === 0;
-  updateSyncDot();
+  updateSyncStatus();
   if (state.entries.length === 0) return;
   populateFilterOptions();
   applyFilters();
@@ -860,7 +920,6 @@ entryForm.addEventListener('submit', (e) => {
     credit: type === 'Dépôt' ? emptyToNull(document.getElementById('fCredit').value) : null,
     retrait: type === 'Retrait' ? emptyToNull(document.getElementById('fRetrait').value) : null,
     commentaire: document.getElementById('fCommentaire').value.trim() || null,
-    exported: false,
   };
 
   if (isNew) {
@@ -872,7 +931,6 @@ entryForm.addEventListener('submit', (e) => {
 
   closeModal();
   refreshAll();
-  downloadJson();
   showToast(isNew ? 'Entrée ajoutée ✅' : 'Entrée mise à jour ✅');
 });
 
@@ -888,7 +946,6 @@ function deleteEntry(id) {
   if (!confirm(`Supprimer cette entrée ${entry.type.toLowerCase()} du ${fmtDate(entry.date)} ?`)) return;
   state.entries = state.entries.filter(e => e.id !== id);
   refreshAll();
-  downloadJson();
   showToast('Entrée supprimée 🗑️');
 }
 
@@ -901,7 +958,6 @@ document.getElementById('btnDelete').addEventListener('click', () => {
 
 document.getElementById('btnAdd').addEventListener('click', () => openModal());
 document.getElementById('btnAddEmpty').addEventListener('click', () => openModal());
-document.getElementById('btnImportEmpty').addEventListener('click', () => document.getElementById('fileImportJson').click());
 document.getElementById('btnCloseModal').addEventListener('click', closeModal);
 document.getElementById('btnCancel').addEventListener('click', closeModal);
 modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
@@ -1039,86 +1095,6 @@ document.getElementById('settingsOverlay').addEventListener('click', (e) => {
   if (e.target === e.currentTarget) closeSettings();
 });
 
-/* =========================================================================
-   Export / Import JSON
-   ========================================================================= */
-
-async function exportJson() {
-  await downloadJson();
-  showToast('Export JSON généré ✅');
-}
-
-function fmtDateTime(iso) {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
-    ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-}
-
-function importJson(file) {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const data = JSON.parse(e.target.result);
-      if (!data.state || !Array.isArray(data.state.entries)) {
-        showToast('Fichier JSON invalide ❌');
-        return;
-      }
-
-      const fileExportedAt = data.exportedAt || null;
-      const localExportedAt = state.lastExportedAt || null;
-
-      if (localExportedAt && fileExportedAt && fileExportedAt < localExportedAt) {
-        if (!confirm(`⚠️ Ce fichier date du ${fmtDateTime(fileExportedAt)}.\nVos données locales sont plus récentes (${fmtDateTime(localExportedAt)}).\n\nImporter quand même ?`)) return;
-      }
-
-      const profile = data.profile || currentProfile;
-      if (profile !== currentProfile) {
-        switchProfile(profile);
-      }
-      state.entries = data.state.entries;
-      state.constantes = mergeConstantes(DEFAULT_CONSTANTES, data.state.constantes || {});
-      state.nextOrder = data.state.nextOrder || state.entries.length + 1;
-      if (data.state.activeBookmakers) state.activeBookmakers = data.state.activeBookmakers;
-      if (data.state.activeCompetitions) state.activeCompetitions = data.state.activeCompetitions;
-      if (data.state.activePays) state.activePays = data.state.activePays;
-      if (data.state.activeSaisons) state.activeSaisons = data.state.activeSaisons;
-      state.lastExportedAt = fileExportedAt;
-      state.lastImportedAt = fileExportedAt;
-      const merge = (constList, activeList) => { for (const v of activeList) { if (!constList.some(c => c.toLowerCase() === v.toLowerCase())) constList.push(v); } constList.sort((a, b) => a.localeCompare(b, 'fr')); };
-      merge(state.constantes.bookmakers, state.activeBookmakers);
-      merge(state.constantes.competitions, state.activeCompetitions);
-      merge(state.constantes.pays, state.activePays);
-      merge(state.constantes.saisons, state.activeSaisons);
-      saveState();
-      refreshAll();
-      downloadJson();
-
-      let freshness = '';
-      if (!fileExportedAt) {
-        freshness = ' (ancien format, sans date)';
-      } else if (!localExportedAt) {
-        freshness = ` — fichier du ${fmtDateTime(fileExportedAt)}`;
-      } else if (fileExportedAt >= localExportedAt) {
-        freshness = ` — fichier plus récent ✅ (${fmtDateTime(fileExportedAt)})`;
-      } else {
-        freshness = ` — fichier plus ancien ⚠️ (${fmtDateTime(fileExportedAt)})`;
-      }
-      showToast(`Import : ${state.entries.length} entrées pour ${profile}${freshness}`, 5000);
-    } catch (err) {
-      showToast('Erreur lors de l\'import JSON ❌');
-      console.error(err);
-    }
-  };
-  reader.readAsText(file);
-}
-
-document.getElementById('btnExportJson').addEventListener('click', exportJson);
-document.getElementById('btnImportJson').addEventListener('click', () => document.getElementById('fileImportJson').click());
-document.getElementById('fileImportJson').addEventListener('change', (e) => {
-  if (e.target.files[0]) importJson(e.target.files[0]);
-  e.target.value = '';
-});
 
 /* =========================================================================
    Init
@@ -1133,3 +1109,4 @@ initTheme();
 updateProfileUI();
 refreshAll();
 document.getElementById('appVersion').textContent = APP_VERSION;
+startFirestoreListener(currentProfile);

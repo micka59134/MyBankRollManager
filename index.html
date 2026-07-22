@@ -26,9 +26,6 @@
     <div class="topbar-right">
       <button class="btn btn-ghost" id="btnSettings" title="Paramètres">⚙️</button>
       <button class="btn btn-ghost" id="btnTheme" title="Changer de thème">🌙</button>
-      <input type="file" id="fileImportJson" accept=".json" hidden>
-      <button class="btn btn-ghost" id="btnImportJson">📥 Importer <span class="sync-dot" id="syncDot" hidden></span></button>
-      <button class="btn btn-ghost" id="btnExportJson">📤 Exporter</button>
       <button class="btn btn-primary" id="btnAdd">+ Ajouter</button>
     </div>
   </header>
@@ -40,10 +37,9 @@
       <div class="empty-card">
         <div class="empty-icon">📊</div>
         <h2>Aucune donnée pour <span id="emptyProfileName">Tom</span></h2>
-        <p>Importez un fichier JSON existant, ou commencez à ajouter des paris manuellement. Ce profil a ses propres données, indépendantes de l'autre profil.</p>
+        <p>Commencez à ajouter des paris. Les données sont synchronisées automatiquement entre vos appareils. Ce profil a ses propres données, indépendantes de l'autre profil.</p>
         <div class="empty-actions">
-          <button class="btn btn-primary" id="btnImportEmpty">📥 Importer un fichier JSON</button>
-          <button class="btn btn-secondary" id="btnAddEmpty">+ Ajouter une entrée</button>
+          <button class="btn btn-primary" id="btnAddEmpty">+ Ajouter une entrée</button>
         </div>
       </div>
     </div>
@@ -137,8 +133,8 @@
   </main>
   <footer class="app-footer">
     <span>v<span id="appVersion"></span></span>
-    <span id="footerSync" hidden>
-      — Données locales : <span id="footerLocalDate">—</span>
+    <span id="footerSync">
+      — <span class="sync-dot" id="syncDot2"></span> <span id="footerSyncLabel">Connexion…</span>
     </span>
   </footer>
 </div>
@@ -313,8 +309,10 @@
 <!-- ===== Toast ===== -->
 <div class="toast" id="toast" hidden></div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=23"></script>
+<script src="app.js?v=24"></script>
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js');</script>
 </body>
 </html>

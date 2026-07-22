@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bankroll-v15';
+const CACHE_NAME = 'bankroll-v16';
 const ASSETS = [
   './',
   './index.html',
@@ -6,6 +6,8 @@ const ASSETS = [
   './styles.css',
   './manifest.json',
   './vendor/chart.umd.min.js',
+  'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js',
 ];
 
 self.addEventListener('install', (e) => {
@@ -23,6 +25,10 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
+  const url = e.request.url;
+  if (url.includes('firestore.googleapis.com') || url.includes('googleapis.com/google.firestore')) {
+    return;
+  }
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request))
   );
