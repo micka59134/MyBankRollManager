@@ -322,7 +322,6 @@ function switchProfile(profile) {
   filters = { search: '', type: '', bookmaker: '', competition: '', pays: '', saison: '' };
   document.getElementById('fSearch').value = '';
   updateProfileUI();
-  refreshAll();
   startFirestoreListener(profile);
 }
 
