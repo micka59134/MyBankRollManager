@@ -287,14 +287,18 @@ function startFirestoreListener(profile) {
           applyFirestoreData(data);
           refreshAllFromFirestore();
         }
-      } else if (state.entries.length > 0) {
-        saveToFirestore();
+      } else {
+        if (state.entries.length > 0) {
+          saveToFirestore();
+        }
+        refreshAllFromFirestore();
       }
       updateSyncStatus();
     },
     (err) => {
       console.error('Firestore listener error', err);
       firestoreConnected = false;
+      refreshAllFromFirestore();
       updateSyncStatus();
     }
   );
@@ -1107,6 +1111,5 @@ document.querySelectorAll('.profile-btn').forEach(b => {
 initIconSelects();
 initTheme();
 updateProfileUI();
-refreshAll();
 document.getElementById('appVersion').textContent = APP_VERSION;
 startFirestoreListener(currentProfile);
