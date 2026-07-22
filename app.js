@@ -1,11 +1,9 @@
 'use strict';
 
-const APP_VERSION = '1.2.1';
+const APP_VERSION = '1.3.0';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
-   Modèle de données répliquant fidèlement la table Excel "Paris" du fichier
-   bankroll_manager_data.xlsx (mêmes colonnes, mêmes règles de calcul).
    ========================================================================= */
 
 const PROFILE_STORAGE_KEY = 'bankrollManager.profile';
@@ -146,27 +144,6 @@ const COMPETITION_PAYS = {
   'Tour de France de cyclisme': 'France',
 };
 
-function currentSaison() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth();
-  return m >= 7 ? `${y}/${y + 1}` : `${y - 1}/${y}`;
-}
-
-function mostUsedBookmaker() {
-  const active = new Set(state.activeBookmakers || []);
-  const counts = {};
-  for (const e of state.entries) {
-    if (e.bookmaker && active.has(e.bookmaker)) counts[e.bookmaker] = (counts[e.bookmaker] || 0) + 1;
-  }
-  let best = '', max = 0;
-  for (const [k, v] of Object.entries(counts)) {
-    if (v > max) { max = v; best = k; }
-  }
-  if (!best && active.size) best = [...active][0];
-  return best;
-}
-
 function competitionIconHtml(name) {
   const logo = COMPETITION_LOGOS[name];
   if (logo) return `<img class="competition-logo" src="vendor/competitions/${logo}" alt="">`;
@@ -275,7 +252,6 @@ function switchProfile(profile) {
   document.getElementById('fSearch').value = '';
   updateProfileUI();
   refreshAll();
-
 }
 
 function updateProfileUI() {
@@ -294,12 +270,8 @@ function addConstante(listName, value) {
 }
 
 /* =========================================================================
-   Calculs métier (répliquent les formules Excel de la table "Paris")
+   Calculs métier
    ========================================================================= */
-
-// Calcule profit / profitCumule pour toutes les entrées,
-// dans l'ORDRE D'INSERTION (champ .order), exactement comme les lignes du
-// tableau Excel (qui ne sont pas nécessairement triées par date).
 function computeDerivedFields(entries) {
   const ordered = [...entries].sort((a, b) => (a.date || '').localeCompare(b.date || '') || a.order - b.order);
   let cumule = 0;
@@ -878,7 +850,6 @@ entryForm.addEventListener('submit', (e) => {
   }
 
   closeModal();
-  saveState();
   refreshAll();
   downloadJson();
   showToast(isNew ? 'Entrée ajoutée ✅' : 'Entrée mise à jour ✅');
@@ -895,7 +866,6 @@ function deleteEntry(id) {
   if (!entry) return;
   if (!confirm(`Supprimer cette entrée ${entry.type.toLowerCase()} du ${fmtDate(entry.date)} ?`)) return;
   state.entries = state.entries.filter(e => e.id !== id);
-  saveState();
   refreshAll();
   downloadJson();
   showToast('Entrée supprimée 🗑️');
@@ -958,7 +928,7 @@ document.getElementById('btnTheme').addEventListener('click', () => {
   document.documentElement.setAttribute('data-theme', next);
   localStorage.setItem('bankrollManager.theme', next);
   updateThemeBtn();
-  if (state.entries.length) renderChart();
+  if (state.entries.length) renderChart(getFilteredEntries());
 });
 
 /* =========================================================================
@@ -1114,4 +1084,3 @@ initTheme();
 updateProfileUI();
 refreshAll();
 document.getElementById('appVersion').textContent = APP_VERSION;
-trySeedImport(currentProfile);
