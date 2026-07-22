@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '1.5.1';
+const APP_VERSION = '1.6.2';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -634,14 +634,22 @@ function escapeHtml(s) {
 
 function updateSyncDot() {
   const dot = document.getElementById('syncDot');
+  const footerSync = document.getElementById('footerSync');
   const hasUnsaved = state.entries.some(e => e.exported === false);
-  if (!state.entries.length) { dot.hidden = true; return; }
-  dot.hidden = false;
-  dot.className = 'sync-dot ' + (hasUnsaved ? 'sync-warn' : 'sync-ok');
   const lastDate = state.lastExportedAt ? fmtDateTime(state.lastExportedAt) : 'jamais';
-  dot.title = hasUnsaved
-    ? `Modifications locales non exportées\nDernier export : ${lastDate}`
-    : `Données synchronisées\nDernier export : ${lastDate}`;
+
+  if (!state.entries.length) {
+    dot.hidden = true;
+  } else {
+    dot.hidden = false;
+    dot.className = 'sync-dot ' + (hasUnsaved ? 'sync-warn' : 'sync-ok');
+    dot.title = hasUnsaved
+      ? `Modifications locales non exportées\nDernier export : ${lastDate}`
+      : `Données synchronisées\nDernier export : ${lastDate}`;
+  }
+
+  footerSync.hidden = false;
+  document.getElementById('footerLocalDate').textContent = lastDate;
 }
 
 function refreshAll() {
@@ -1076,6 +1084,7 @@ function importJson(file) {
       if (data.state.activePays) state.activePays = data.state.activePays;
       if (data.state.activeSaisons) state.activeSaisons = data.state.activeSaisons;
       state.lastExportedAt = fileExportedAt;
+      state.lastImportedAt = fileExportedAt;
       const merge = (constList, activeList) => { for (const v of activeList) { if (!constList.some(c => c.toLowerCase() === v.toLowerCase())) constList.push(v); } constList.sort((a, b) => a.localeCompare(b, 'fr')); };
       merge(state.constantes.bookmakers, state.activeBookmakers);
       merge(state.constantes.competitions, state.activeCompetitions);
