@@ -46,11 +46,7 @@ const DEFAULT_CONSTANTES = {
   typesDeParis: ['Simple', 'Combiné', 'Autre', '3 sur 4', '2 sur 3'],
 };
 
-// Drapeau associé à chaque pays (colonne "Pays" du tableau), sous forme d'icônes SVG
-// vendorisées (vendor/flags/) plutôt que d'emoji : Windows/Segoe UI Emoji n'affiche pas les
-// drapeaux composés d'indicateurs régionaux (🇫🇷, 🇪🇸...) contrairement aux autres émoji, ce
-// qui les rendait invisibles pour beaucoup d'utilisateurs. "Monde" reste en emoji 🌍 (un
-// pictogramme simple, pas un drapeau, qui s'affiche normalement partout).
+// SVG vendorisés car Windows ne rend pas les emoji drapeaux
 const COUNTRY_FLAG_CODES = {
   'France': 'fr',
   'Europe': 'eu',
@@ -80,10 +76,6 @@ function countryFlagHtml(pays) {
   return '<img class="flag-icon" src="vendor/icons/drapeau-blanc.svg" alt="">';
 }
 
-// Logo des bookmakers connus (vendor/bookmakers/), en icônes téléchargées une fois et servies
-// localement (hors ligne). Un bookmaker ajouté librement par l'utilisateur (sans logo connu)
-// se voit attribuer un avatar généré à partir de son initiale, avec une couleur stable dérivée
-// de son nom (pas d'appel réseau, fonctionne pour n'importe quel nom).
 const BOOKMAKER_LOGOS = {
   'Winamax': 'winamax.png',
   'Unibet': 'unibet.png',
@@ -104,15 +96,10 @@ function bookmakerLogoHtml(name) {
   return `<span class="bookmaker-logo bookmaker-avatar" style="background:${color}">${escapeHtml(initials)}</span>`;
 }
 
-// Icône (point de couleur) pour un type d'entrée, reprenant les couleurs des pastilles déjà
-// utilisées dans le tableau.
 function typeIconHtml(type) {
   return `<span class="type-dot type-dot-${type.replace(/\s/g, '-')}"></span>`;
 }
 
-// Icône SVG générique par compétition, devinée par mots-clés (pas d'asset dédié par compétition).
-// Icônes vendorisées (vendor/icons/) plutôt qu'en emoji, pour un rendu net et cohérent avec les
-// drapeaux/logos, indépendant de la police d'émoji du système.
 const COMPETITION_ICON_RULES = [
   { test: /NBA/i, file: 'basketball.svg' },
   { test: /NHL/i, file: 'hockey.svg' },
@@ -121,11 +108,6 @@ const COMPETITION_ICON_RULES = [
   { test: /Coupe du Monde/i, file: 'globe.svg' },
 ];
 
-// Vrais logos des compétitions connues (vendor/competitions/), téléchargés une fois et servis
-// localement. Les 3 compétitions UEFA partagent le même logo (favicon du site uefa.com commun
-// aux 3), de même pour les 3 variantes de Coupe du Monde (fifa.com) : ce sont des sites distincts
-// par organisation, pas par compétition individuelle. "Amicaux" et toute compétition ajoutée
-// librement sans logo connu retombent sur l'icône générique par sport (COMPETITION_ICON_RULES).
 const COMPETITION_LOGOS = {
   'Ligue 1': 'ligue1.png',
   'Ligue 2': 'ligue2.png',
@@ -375,9 +357,7 @@ function fmtDate(isoDate) {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-// Les dates sont manipulées en "YYYY-MM-DD" pur ; toute conversion via new Date(iso) ou
-// toISOString() interprète/produit de l'UTC et décale le jour d'un cran selon le fuseau
-// local. On passe donc systématiquement par ces deux helpers en heure locale.
+// Dates en YYYY-MM-DD pur, conversions en heure locale pour éviter le décalage UTC
 function isoToLocalDate(iso) {
   const [y, m, d] = iso.split('-').map(Number);
   return new Date(y, m - 1, d);
@@ -398,18 +378,14 @@ function computeStats(entries) {
   const paris = entries.filter(e => BET_TYPES.has(e.type));
   const totalMise = paris.reduce((s, e) => s + numOr0(e.montantParie), 0);
   const totalGagne = paris.reduce((s, e) => s + numOr0(e.montantGagne), 0);
-  const totalDepot = entries.filter(e => e.type === 'Dépôt').reduce((s, e) => s + numOr0(e.credit), 0);
-  const totalRetrait = entries.filter(e => e.type === 'Retrait').reduce((s, e) => s + numOr0(e.retrait), 0);
   const profitTotal = entries.reduce((s, e) => s + (e.profit === null ? 0 : e.profit), 0);
-  const solde = totalDepot - totalRetrait + profitTotal;
   const gagnants = paris.filter(e => (e.profit || 0) > 0).length;
   const tauxReussite = paris.length ? (gagnants / paris.length) * 100 : 0;
-  const roi = totalMise ? (profitTotal / totalMise) * 100 : 0;
   const parisGratuits = entries.filter(e => e.type === 'Paris gratuit');
   const nbParisGratuits = parisGratuits.length;
   const totalMiseGratuit = parisGratuits.reduce((s, e) => s + numOr0(e.montantParie), 0);
   const totalGagneGratuit = parisGratuits.reduce((s, e) => s + numOr0(e.montantGagne), 0);
-  return { totalMise, totalGagne, totalDepot, totalRetrait, profitTotal, solde, tauxReussite, roi, nbParis: paris.length, gagnants, nbParisGratuits, totalMiseGratuit, totalGagneGratuit };
+  return { totalMise, totalGagne, profitTotal, tauxReussite, nbParis: paris.length, gagnants, nbParisGratuits, totalMiseGratuit, totalGagneGratuit };
 }
 
 function renderCards(entries) {
@@ -432,8 +408,6 @@ function renderCards(entries) {
 }
 
 function renderChart(entries) {
-  // En vue filtrée, le profit cumulé global de chaque entrée (calculé sur toutes les données)
-  // n'a plus de sens : on recalcule un cumul propre au seul sous-ensemble filtré.
   const ordered = [...entries].sort((a, b) => (a.date || '').localeCompare(b.date || '') || a.order - b.order);
   let running = 0;
   const labels = [];
@@ -508,9 +482,6 @@ function renderChart(entries) {
    Filtres & Table
    ========================================================================= */
 
-// Config des 4 menus déroulants à icônes de la barre de filtres. Chaque option est construite
-// dynamiquement à partir des constantes courantes (bookmakers, compétitions, saisons ajoutés
-// librement par l'utilisateur ont donc aussi leur icône : logo réel ou avatar/pastille de repli).
 const ICON_SELECTS = [
   { id: 'fType', filterKey: 'type', placeholder: 'Tous types', getOptions: () => TYPES.map(t => ({ value: t, label: t, icon: typeIconHtml(t) })) },
   { id: 'fBookmaker', filterKey: 'bookmaker', placeholder: 'Tous bookmakers', getOptions: () => { const active = new Set(state.activeBookmakers || []); return state.constantes.bookmakers.filter(b => active.has(b)).map(b => ({ value: b, label: b, icon: bookmakerLogoHtml(b) })); } },
@@ -606,9 +577,6 @@ function hasActiveFilters() {
   return !!(filters.search || filters.type || filters.bookmaker || filters.competition || filters.pays || filters.saison);
 }
 
-// Entrées correspondant aux filtres actifs (recherche, type, bookmaker, compétition, saison),
-// sans tri : base commune pour le tableau de bord, le graphique et le tableau, qui reflètent
-// ainsi tous la même vue filtrée.
 function getFilteredEntries() {
   return state.entries.filter(e => {
     if (filters.type && e.type !== filters.type) return false;
@@ -726,9 +694,6 @@ function refreshAll() {
   applyFilters();
 }
 
-// Ré-applique les filtres actifs et rafraîchit tout ce qui en dépend : le tableau de bord,
-// le graphique et le tableau montrent ainsi tous la même vue filtrée par bookmaker, compétition,
-// saison, etc. — pas seulement le tableau.
 function applyFilters() {
   const filtered = getFilteredEntries();
   renderCards(filtered);
@@ -1097,7 +1062,6 @@ document.getElementById('btnSaveSettings').addEventListener('click', saveSetting
 document.getElementById('settingsOverlay').addEventListener('click', (e) => {
   if (e.target === e.currentTarget) closeSettings();
 });
-
 
 /* =========================================================================
    Init
