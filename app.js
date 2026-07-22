@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.1';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -596,7 +596,7 @@ function renderTable() {
     <tr data-id="${e.id}"${e.exported === false ? ' class="row-unsaved"' : ''}>
       <td><span class="pill pill-${e.type.replace(/\s/g, '-')}">${escapeHtml(e.type)}</span></td>
       <td>${fmtDate(e.date)}</td>
-      <td class="cell-comment" title="${escapeHtml(e.paris || '')}">${escapeHtml(e.paris || '—')}</td>
+      <td class="cell-pari" title="${escapeHtml(e.paris || '')}">${escapeHtml(e.paris || '—')}</td>
       <td>${e.bookmaker ? `${bookmakerLogoHtml(e.bookmaker)} ${escapeHtml(e.bookmaker)}` : '—'}</td>
       <td class="cell-competition" title="${escapeHtml(e.competition || '')}">${e.competition ? `${competitionIconHtml(e.competition)}${escapeHtml(e.competition)}` : '—'}</td>
       <td title="${escapeHtml(e.pays || '')}">${e.pays ? `${countryFlagHtml(e.pays)} ${escapeHtml(e.pays)}` : '—'}</td>

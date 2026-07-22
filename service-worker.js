@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bankroll-v9';
+const CACHE_NAME = 'bankroll-v10';
 const ASSETS = [
   './',
   './index.html',
