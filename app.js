@@ -156,7 +156,7 @@ function competitionIconHtml(name) {
 /* ===== State ===== */
 let currentProfile = localStorage.getItem(PROFILE_STORAGE_KEY) || PROFILES[0];
 let state = loadState(currentProfile);
-let filters = { search: '', type: '', bookmaker: '', competition: '', pays: '', saison: '' };
+let filters = { search: '', type: '', bookmaker: '', competition: '', pays: '', saison: '', periode: '', dateFrom: '', dateTo: '' };
 let sort = { col: 'date', dir: 'desc' };
 let chart = null;
 let editingId = null;
@@ -301,7 +301,7 @@ function switchProfile(profile) {
   currentProfile = profile;
   localStorage.setItem(PROFILE_STORAGE_KEY, profile);
   state = loadState(currentProfile);
-  filters = { search: '', type: '', bookmaker: '', competition: '', pays: '', saison: '' };
+  filters = { search: '', type: '', bookmaker: '', competition: '', pays: '', saison: '', periode: '', dateFrom: '', dateTo: '' };
   document.getElementById('fSearch').value = '';
   updateProfileUI();
   startFirestoreListener(profile);
@@ -488,7 +488,53 @@ const ICON_SELECTS = [
   { id: 'fCompetition', filterKey: 'competition', placeholder: 'Toutes compétitions', getOptions: () => { const active = new Set(state.activeCompetitions || []); return state.constantes.competitions.filter(c => active.has(c)).map(c => ({ value: c, label: c, icon: competitionIconHtml(c) })); } },
   { id: 'fPays', filterKey: 'pays', placeholder: 'Tous pays', getOptions: () => { const active = new Set(state.activePays || []); return state.constantes.pays.filter(p => active.has(p)).map(p => ({ value: p, label: p, icon: countryFlagHtml(p) })); } },
   { id: 'fSaison', filterKey: 'saison', placeholder: 'Toutes saisons', getOptions: () => { const active = new Set(state.activeSaisons || []); return state.constantes.saisons.filter(s => active.has(s)).map(s => ({ value: s, label: s, icon: '<img class="icon-svg" src="vendor/icons/calendrier.svg" alt="">' })); } },
+  { id: 'fPeriode', filterKey: 'periode', placeholder: 'Toutes dates', getOptions: () => PERIOD_PRESETS.map(p => ({ value: p.value, label: p.label, icon: '<img class="icon-svg" src="vendor/icons/calendrier.svg" alt="">' })), onSelect: applyPeriodPreset },
 ];
+
+const PERIOD_PRESETS = [
+  { value: 'this-month', label: 'Ce mois' },
+  { value: 'last-month', label: 'Mois dernier' },
+  { value: 'last-3-months', label: '3 derniers mois' },
+  { value: 'last-6-months', label: '6 derniers mois' },
+  { value: 'this-year', label: 'Cette année' },
+  { value: 'last-year', label: 'Année dernière' },
+  { value: 'custom', label: 'Personnalisé…' },
+];
+
+function applyPeriodPreset(value) {
+  const today = new Date();
+  const y = today.getFullYear();
+  const m = today.getMonth();
+  let from = '', to = '';
+  if (value === 'this-month') {
+    from = dateToIsoLocal(new Date(y, m, 1));
+    to = dateToIsoLocal(new Date(y, m + 1, 0));
+  } else if (value === 'last-month') {
+    from = dateToIsoLocal(new Date(y, m - 1, 1));
+    to = dateToIsoLocal(new Date(y, m, 0));
+  } else if (value === 'last-3-months') {
+    from = dateToIsoLocal(new Date(y, m - 2, 1));
+    to = dateToIsoLocal(today);
+  } else if (value === 'last-6-months') {
+    from = dateToIsoLocal(new Date(y, m - 5, 1));
+    to = dateToIsoLocal(today);
+  } else if (value === 'this-year') {
+    from = `${y}-01-01`;
+    to = dateToIsoLocal(today);
+  } else if (value === 'last-year') {
+    from = `${y - 1}-01-01`;
+    to = `${y - 1}-12-31`;
+  } else if (value === 'custom') {
+    from = filters.dateFrom;
+    to = filters.dateTo;
+  }
+  filters.dateFrom = from;
+  filters.dateTo = to;
+  const rangeEl = document.getElementById('dateRange');
+  rangeEl.hidden = !value;
+  document.getElementById('fDateFrom').value = from;
+  document.getElementById('fDateTo').value = to;
+}
 
 function populateFilterOptions() {
   ICON_SELECTS.forEach(renderIconSelectOptions);
@@ -515,7 +561,7 @@ function updateIconSelectLabel(cfg, value) {
     return;
   }
   const opt = cfg.getOptions().find(o => o.value === value);
-  label.innerHTML = `${(opt && opt.icon) || ''}<span>${escapeHtml(value)}</span>`;
+  label.innerHTML = `${(opt && opt.icon) || ''}<span>${escapeHtml(opt ? opt.label : value)}</span>`;
 }
 
 function closeAllIconSelects() {
@@ -548,6 +594,7 @@ function initIconSelects() {
       menu.querySelectorAll('.iselect-option').forEach(o => o.classList.toggle('active', o === opt));
       updateIconSelectLabel(cfg, opt.dataset.value);
       closeAllIconSelects();
+      if (cfg.onSelect) cfg.onSelect(opt.dataset.value);
       applyFilters();
     });
   });
@@ -574,7 +621,7 @@ function fillDatalist(id, values) {
 }
 
 function hasActiveFilters() {
-  return !!(filters.search || filters.type || filters.bookmaker || filters.competition || filters.pays || filters.saison);
+  return !!(filters.search || filters.type || filters.bookmaker || filters.competition || filters.pays || filters.saison || filters.dateFrom || filters.dateTo);
 }
 
 function getFilteredEntries() {
@@ -584,6 +631,8 @@ function getFilteredEntries() {
     if (filters.competition && e.competition !== filters.competition) return false;
     if (filters.pays && e.pays !== filters.pays) return false;
     if (filters.saison && e.saison !== filters.saison) return false;
+    if (filters.dateFrom && e.date && e.date < filters.dateFrom) return false;
+    if (filters.dateTo && e.date && e.date > filters.dateTo) return false;
     if (filters.search) {
       const q = filters.search.toLowerCase();
       const hay = [e.paris, e.commentaire, e.bookmaker, e.competition].filter(Boolean).join(' ').toLowerCase();
@@ -937,8 +986,24 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modalOv
 
 document.getElementById('fSearch').addEventListener('input', (e) => { filters.search = e.target.value; applyFilters(); });
 document.getElementById('btnResetFilters').addEventListener('click', () => {
-  filters = { search: '', type: '', bookmaker: '', competition: '', pays: '', saison: '' };
+  filters = { search: '', type: '', bookmaker: '', competition: '', pays: '', saison: '', periode: '', dateFrom: '', dateTo: '' };
   document.getElementById('fSearch').value = '';
+  document.getElementById('fDateFrom').value = '';
+  document.getElementById('fDateTo').value = '';
+  document.getElementById('dateRange').hidden = true;
+  populateFilterOptions();
+  applyFilters();
+});
+
+document.getElementById('fDateFrom').addEventListener('input', (e) => {
+  filters.dateFrom = e.target.value;
+  filters.periode = 'custom';
+  populateFilterOptions();
+  applyFilters();
+});
+document.getElementById('fDateTo').addEventListener('input', (e) => {
+  filters.dateTo = e.target.value;
+  filters.periode = 'custom';
   populateFilterOptions();
   applyFilters();
 });

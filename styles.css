@@ -219,6 +219,11 @@ html, body {
 .type-dot-Dépôt { background: var(--green); }
 .type-dot-Retrait { background: var(--red); }
 
+.date-range { display: flex; align-items: center; gap: 6px; flex: 1 1 260px; min-width: 240px; }
+.date-range[hidden] { display: none; }
+.date-range-sep { color: var(--text-muted); font-size: 14px; flex-shrink: 0; }
+.input-date { flex: 1; min-width: 110px; }
+
 .filter-status {
   padding: 10px 20px; margin-top: -4px; font-size: 13px; color: var(--primary);
   background: var(--primary-soft); border-top: 1px solid var(--border);

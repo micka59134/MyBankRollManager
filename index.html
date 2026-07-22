@@ -76,6 +76,17 @@
             <div class="iselect-menu" hidden></div>
           </div>
 
+          <div class="iselect" id="fPeriode" data-placeholder="Toutes dates">
+            <button type="button" class="iselect-btn"><span class="iselect-label">Toutes dates</span><span class="iselect-caret">▾</span></button>
+            <div class="iselect-menu" hidden></div>
+          </div>
+
+          <div class="date-range" id="dateRange" hidden>
+            <input type="date" id="fDateFrom" class="input input-date" title="Date de début">
+            <span class="date-range-sep">→</span>
+            <input type="date" id="fDateTo" class="input input-date" title="Date de fin">
+          </div>
+
           <button class="btn btn-ghost" id="btnResetFilters">✕ Réinitialiser</button>
         </div>
         <div class="filter-status" id="filterStatus" hidden>
