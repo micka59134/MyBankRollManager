@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.5.1';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -632,11 +632,24 @@ function escapeHtml(s) {
    Rendu global
    ========================================================================= */
 
+function updateSyncDot() {
+  const dot = document.getElementById('syncDot');
+  const hasUnsaved = state.entries.some(e => e.exported === false);
+  if (!state.entries.length) { dot.hidden = true; return; }
+  dot.hidden = false;
+  dot.className = 'sync-dot ' + (hasUnsaved ? 'sync-warn' : 'sync-ok');
+  const lastDate = state.lastExportedAt ? fmtDateTime(state.lastExportedAt) : 'jamais';
+  dot.title = hasUnsaved
+    ? `Modifications locales non exportées\nDernier export : ${lastDate}`
+    : `Données synchronisées\nDernier export : ${lastDate}`;
+}
+
 function refreshAll() {
   computeDerivedFields(state.entries);
   saveState();
   document.getElementById('emptyState').hidden = state.entries.length !== 0;
   document.getElementById('mainView').hidden = state.entries.length === 0;
+  updateSyncDot();
   if (state.entries.length === 0) return;
   populateFilterOptions();
   applyFilters();

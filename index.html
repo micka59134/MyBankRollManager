@@ -8,7 +8,7 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4f46e5">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=15">
+<link rel="stylesheet" href="styles.css?v=16">
 </head>
 <body>
 
@@ -27,7 +27,7 @@
       <button class="btn btn-ghost" id="btnSettings" title="Paramètres">⚙️</button>
       <button class="btn btn-ghost" id="btnTheme" title="Changer de thème">🌙</button>
       <input type="file" id="fileImportJson" accept=".json" hidden>
-      <button class="btn btn-ghost" id="btnImportJson">📥 Importer</button>
+      <button class="btn btn-ghost" id="btnImportJson">📥 Importer <span class="sync-dot" id="syncDot" hidden></span></button>
       <button class="btn btn-ghost" id="btnExportJson">📤 Exporter</button>
       <button class="btn btn-primary" id="btnAdd">+ Ajouter</button>
     </div>
@@ -309,7 +309,7 @@
 <div class="toast" id="toast" hidden></div>
 
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=19"></script>
+<script src="app.js?v=20"></script>
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js');</script>
 </body>
 </html>
