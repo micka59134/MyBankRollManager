@@ -117,19 +117,19 @@
           <table id="dataTable">
             <thead>
               <tr>
-                <th data-sort="type">Type</th>
-                <th data-sort="date">Date</th>
-                <th data-sort="paris">Pari</th>
-                <th data-sort="bookmaker">Bookmaker</th>
-                <th data-sort="competition">Compétition</th>
-                <th data-sort="pays">Pays</th>
-                <th data-sort="saison">Saison</th>
-                <th data-sort="typeDeParis">Type de paris</th>
-                <th data-sort="cote">Côte</th>
-                <th data-sort="montantParie">Misé</th>
-<th data-sort="montantGagne">Gagné</th>
-                <th data-sort="profit">Profit</th>
-                <th data-sort="profitCumule">Cumulé</th>
+                <th>Type</th>
+                <th>Date</th>
+                <th>Pari</th>
+                <th>Bookmaker</th>
+                <th>Compétition</th>
+                <th>Pays</th>
+                <th>Saison</th>
+                <th>Type de paris</th>
+                <th>Côte</th>
+                <th>Misé</th>
+                <th>Gagné</th>
+                <th>Profit</th>
+                <th>Cumulé</th>
                 <th>Commentaire</th>
                 <th class="col-actions">Actions</th>
               </tr>
@@ -147,6 +147,7 @@
     <span id="footerSync">
       — <span class="sync-dot" id="syncDot2"></span> <span id="footerSyncLabel">Connexion…</span>
     </span>
+    <button class="btn-footer" id="btnBackup" title="Exporter les données du profil actif en JSON">💾 Sauvegarder</button>
   </footer>
 </div>
 
@@ -323,7 +324,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=24"></script>
+<script src="app.js?v=26"></script>
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js');</script>
 </body>
 </html>

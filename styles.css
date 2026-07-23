@@ -396,7 +396,12 @@ textarea.input { resize: vertical; font-family: inherit; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
 
 /* ===== Footer ===== */
-.app-footer { text-align: center; padding: 12px 0; font-size: 11px; color: var(--text-muted); opacity: .6; }
+.app-footer { text-align: center; padding: 12px 0; font-size: 11px; color: var(--text-muted); opacity: .6; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.btn-footer {
+  border: 1px solid var(--border); background: transparent; color: var(--text-muted);
+  padding: 3px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; transition: all .15s;
+}
+.btn-footer:hover { border-color: var(--primary); color: var(--primary); opacity: 1; }
 
 /* ===== Responsive ===== */
 @media (max-width: 640px) {

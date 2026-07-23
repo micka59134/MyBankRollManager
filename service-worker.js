@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bankroll-v16';
+const CACHE_NAME = 'bankroll-v17';
 const ASSETS = [
   './',
   './index.html',
@@ -30,6 +30,12 @@ self.addEventListener('fetch', (e) => {
     return;
   }
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
+    fetch(e.request)
+      .then(response => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+        return response;
+      })
+      .catch(() => caches.match(e.request))
   );
 });

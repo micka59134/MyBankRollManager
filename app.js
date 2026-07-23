@@ -157,7 +157,7 @@ function competitionIconHtml(name) {
 let currentProfile = localStorage.getItem(PROFILE_STORAGE_KEY) || PROFILES[0];
 let state = loadState(currentProfile);
 let filters = { search: '', type: '', bookmaker: '', competition: '', pays: '', saison: '', periode: '', dateFrom: '', dateTo: '' };
-let sort = { col: 'date', dir: 'desc' };
+// Entries are always displayed most-recent-first
 let chart = null;
 let editingId = null;
 
@@ -644,19 +644,7 @@ function getFilteredEntries() {
 
 function getFilteredSortedEntries() {
   const list = getFilteredEntries();
-
-  list.sort((a, b) => {
-    let va = a[sort.col], vb = b[sort.col];
-    if (sort.col === 'date') { va = va || ''; vb = vb || ''; }
-    if (va === null || va === undefined) va = -Infinity;
-    if (vb === null || vb === undefined) vb = -Infinity;
-    if (typeof va === 'string') va = va.toLowerCase();
-    if (typeof vb === 'string') vb = vb.toLowerCase();
-    if (va < vb) return sort.dir === 'asc' ? -1 : 1;
-    if (va > vb) return sort.dir === 'asc' ? 1 : -1;
-    return 0;
-  });
-
+  list.sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.order - a.order);
   return list;
 }
 
@@ -1008,14 +996,6 @@ document.getElementById('fDateTo').addEventListener('input', (e) => {
   applyFilters();
 });
 
-document.querySelectorAll('#dataTable thead th[data-sort]').forEach(th => {
-  th.addEventListener('click', () => {
-    const col = th.dataset.sort;
-    if (sort.col === col) sort.dir = sort.dir === 'asc' ? 'desc' : 'asc';
-    else { sort.col = col; sort.dir = 'asc'; }
-    renderTable();
-  });
-});
 
 /* =========================================================================
    Thème
@@ -1126,6 +1106,29 @@ document.getElementById('btnCancelSettings').addEventListener('click', closeSett
 document.getElementById('btnSaveSettings').addEventListener('click', saveSettings);
 document.getElementById('settingsOverlay').addEventListener('click', (e) => {
   if (e.target === e.currentTarget) closeSettings();
+});
+
+document.getElementById('btnBackup').addEventListener('click', () => {
+  const data = {
+    profile: currentProfile,
+    exportedAt: new Date().toISOString(),
+    state: {
+      entries: state.entries,
+      activeBookmakers: state.activeBookmakers,
+      activeCompetitions: state.activeCompetitions,
+      activePays: state.activePays,
+      activeSaisons: state.activeSaisons,
+      nextOrder: state.nextOrder
+    }
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `bankroll_manager_${currentProfile}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Sauvegarde téléchargée');
 });
 
 /* =========================================================================
