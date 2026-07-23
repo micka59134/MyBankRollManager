@@ -337,7 +337,7 @@ function computeDerivedFields(entries) {
     }
     cumule += (profit === null ? 0 : profit);
     e.profit = profit;
-    e.profitCumule = cumule;
+    e.profitCumule = (e.type === 'Dépôt' || e.type === 'Retrait') ? null : cumule;
   }
   return ordered;
 }
@@ -385,15 +385,19 @@ function computeStats(entries) {
   const nbParisGratuits = parisGratuits.length;
   const totalMiseGratuit = parisGratuits.reduce((s, e) => s + numOr0(e.montantParie), 0);
   const totalGagneGratuit = parisGratuits.reduce((s, e) => s + numOr0(e.montantGagne), 0);
-  return { totalMise, totalGagne, profitTotal, tauxReussite, nbParis: paris.length, gagnants, nbParisGratuits, totalMiseGratuit, totalGagneGratuit };
+  const totalDepots = entries.filter(e => e.type === 'Dépôt').reduce((s, e) => s + numOr0(e.credit), 0);
+  const totalRetraits = entries.filter(e => e.type === 'Retrait').reduce((s, e) => s + numOr0(e.retrait), 0);
+  const montantInvesti = totalDepots - totalRetraits;
+  return { totalMise, totalGagne, profitTotal, tauxReussite, nbParis: paris.length, gagnants, nbParisGratuits, totalMiseGratuit, totalGagneGratuit, montantInvesti };
 }
 
 function renderCards(entries) {
   const s = computeStats(entries);
   const cards = [
     { label: 'Nombre de paris', value: s.nbParis, sub: s.nbParisGratuits ? `dont ${s.nbParisGratuits} gratuit${s.nbParisGratuits > 1 ? 's' : ''}` : '' },
-    { label: 'Total misé', value: fmtMoney(s.totalMise), sub: s.totalMiseGratuit ? `dont ${fmtMoney(s.totalMiseGratuit)} en paris gratuits` : '' },
-    { label: 'Total gagné', value: fmtMoney(s.totalGagne) },
+    { label: 'Montant investi', value: fmtMoney(s.montantInvesti) },
+    { label: 'Montant misé', value: fmtMoney(s.totalMise), sub: s.totalMiseGratuit ? `dont ${fmtMoney(s.totalMiseGratuit)} en paris gratuits` : '' },
+    { label: 'Montant gagné', value: fmtMoney(s.totalGagne) },
     { label: 'Nombre de paris gagné', value: `${s.gagnants} (${s.tauxReussite.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %)`, cls: s.gagnants > 0 ? 'positive' : '' },
     { label: 'Profit', value: fmtMoney(s.profitTotal), cls: s.profitTotal >= 0 ? 'positive' : 'negative' },
   ];
@@ -660,7 +664,7 @@ function renderTable() {
 
   tbody.innerHTML = list.map(e => {
     const profitCls = e.profit === null ? '' : (e.profit > 0 ? 'num-positive' : (e.profit < 0 ? 'num-negative' : ''));
-    const cumuleCls = e.profitCumule > 0 ? 'num-positive' : (e.profitCumule < 0 ? 'num-negative' : '');
+    const cumuleCls = e.profitCumule === null ? '' : (e.profitCumule > 0 ? 'num-positive' : (e.profitCumule < 0 ? 'num-negative' : ''));
     let gagneCls = '';
     let gagneText = '—';
     if (BET_TYPES.has(e.type)) {
@@ -682,7 +686,7 @@ function renderTable() {
       <td>${e.montantParie != null ? fmtMoney(e.montantParie) : '—'}</td>
       <td class="${gagneCls}">${gagneText}</td>
       <td class="${profitCls}">${e.profit === null ? '—' : fmtMoney(e.profit)}</td>
-      <td class="${cumuleCls}">${fmtMoney(e.profitCumule)}</td>
+      <td class="${cumuleCls}">${e.profitCumule === null ? '—' : fmtMoney(e.profitCumule)}</td>
       <td class="cell-comment" title="${escapeHtml(e.commentaire || '')}">${escapeHtml(e.commentaire || '')}</td>
       <td class="col-actions">
         <div class="row-actions">
@@ -924,7 +928,13 @@ entryForm.addEventListener('submit', (e) => {
     montantGagne: BET_TYPES.has(type) ? emptyToNull(document.getElementById('fMontantGagne').value) : null,
     credit: type === 'Dépôt' ? emptyToNull(document.getElementById('fCredit').value) : null,
     retrait: type === 'Retrait' ? emptyToNull(document.getElementById('fRetrait').value) : null,
-    commentaire: document.getElementById('fCommentaire').value.trim() || null,
+    commentaire: document.getElementById('fCommentaire').value.trim()
+      || (type === 'Dépôt' && emptyToNull(document.getElementById('fCredit').value) != null
+        ? `Dépôt de ${Number(document.getElementById('fCredit').value).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €`
+        : null)
+      || (type === 'Retrait' && emptyToNull(document.getElementById('fRetrait').value) != null
+        ? `Retrait de ${Number(document.getElementById('fRetrait').value).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €`
+        : null),
   };
 
   if (isNew) {
