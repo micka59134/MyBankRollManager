@@ -395,7 +395,6 @@ function renderCards(entries) {
   const s = computeStats(entries);
   const cards = [
     { label: 'Nombre de paris', value: s.nbParis, sub: s.nbParisGratuits ? `dont ${s.nbParisGratuits} gratuit${s.nbParisGratuits > 1 ? 's' : ''}` : '' },
-    { label: 'Montant investi', value: fmtMoney(s.montantInvesti) },
     { label: 'Montant misé', value: fmtMoney(s.totalMise), sub: s.totalMiseGratuit ? `dont ${fmtMoney(s.totalMiseGratuit)} en paris gratuits` : '' },
     { label: 'Montant gagné', value: fmtMoney(s.totalGagne) },
     { label: 'Nombre de paris gagné', value: `${s.gagnants} (${s.tauxReussite.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %)`, cls: s.gagnants > 0 ? 'positive' : '' },
