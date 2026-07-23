@@ -156,7 +156,7 @@ function competitionIconHtml(name) {
 /* ===== State ===== */
 let currentProfile = localStorage.getItem(PROFILE_STORAGE_KEY) || PROFILES[0];
 let state = loadState(currentProfile);
-let filters = { search: '', type: '', bookmaker: '', competition: '', pays: '', saison: '', periode: '', dateFrom: '', dateTo: '' };
+let filters = { search: '', type: [], bookmaker: [], competition: [], pays: [], saison: [], periode: '', dateFrom: '', dateTo: '' };
 // Entries are always displayed most-recent-first
 let chart = null;
 let editingId = null;
@@ -301,7 +301,7 @@ function switchProfile(profile) {
   currentProfile = profile;
   localStorage.setItem(PROFILE_STORAGE_KEY, profile);
   state = loadState(currentProfile);
-  filters = { search: '', type: '', bookmaker: '', competition: '', pays: '', saison: '', periode: '', dateFrom: '', dateTo: '' };
+  filters = { search: '', type: [], bookmaker: [], competition: [], pays: [], saison: [], periode: '', dateFrom: '', dateTo: '' };
   document.getElementById('fSearch').value = '';
   updateProfileUI();
   startFirestoreListener(profile);
@@ -547,19 +547,32 @@ function populateFilterOptions() {
 function renderIconSelectOptions(cfg) {
   const wrap = document.getElementById(cfg.id);
   const menu = wrap.querySelector('.iselect-menu');
-  const currentValue = filters[cfg.filterKey];
+  const current = filters[cfg.filterKey];
+  const multi = Array.isArray(current);
   const options = [{ value: '', label: cfg.placeholder, icon: null }, ...cfg.getOptions()];
-  menu.innerHTML = options.map(o => `
-    <div class="iselect-option ${o.value === currentValue ? 'active' : ''}" data-value="${escapeHtml(o.value)}">
+  menu.innerHTML = options.map(o => {
+    const isActive = multi ? (o.value === '' ? current.length === 0 : current.includes(o.value)) : o.value === current;
+    return `<div class="iselect-option ${isActive ? 'active' : ''}" data-value="${escapeHtml(o.value)}">
       ${o.icon || ''}<span>${escapeHtml(o.label)}</span>
-    </div>
-  `).join('');
-  updateIconSelectLabel(cfg, currentValue);
+    </div>`;
+  }).join('');
+  updateIconSelectLabel(cfg, current);
 }
 
 function updateIconSelectLabel(cfg, value) {
   const wrap = document.getElementById(cfg.id);
   const label = wrap.querySelector('.iselect-label');
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      label.innerHTML = `<span>${escapeHtml(cfg.placeholder)}</span>`;
+    } else if (value.length === 1) {
+      const opt = cfg.getOptions().find(o => o.value === value[0]);
+      label.innerHTML = `${(opt && opt.icon) || ''}<span>${escapeHtml(opt ? opt.label : value[0])}</span>`;
+    } else {
+      label.innerHTML = `<span>${value.length} sélectionnés</span>`;
+    }
+    return;
+  }
   if (!value) {
     label.innerHTML = `<span>${escapeHtml(cfg.placeholder)}</span>`;
     return;
@@ -580,6 +593,7 @@ function initIconSelects() {
     const wrap = document.getElementById(cfg.id);
     const btn = wrap.querySelector('.iselect-btn');
     const menu = wrap.querySelector('.iselect-menu');
+    if (Array.isArray(filters[cfg.filterKey])) wrap.classList.add('iselect-multi');
 
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -594,11 +608,29 @@ function initIconSelects() {
     menu.addEventListener('click', (e) => {
       const opt = e.target.closest('.iselect-option');
       if (!opt) return;
-      filters[cfg.filterKey] = opt.dataset.value;
-      menu.querySelectorAll('.iselect-option').forEach(o => o.classList.toggle('active', o === opt));
-      updateIconSelectLabel(cfg, opt.dataset.value);
-      closeAllIconSelects();
-      if (cfg.onSelect) cfg.onSelect(opt.dataset.value);
+      const val = opt.dataset.value;
+      const current = filters[cfg.filterKey];
+      if (Array.isArray(current)) {
+        e.stopPropagation();
+        if (val === '') {
+          filters[cfg.filterKey] = [];
+        } else {
+          const idx = current.indexOf(val);
+          if (idx >= 0) current.splice(idx, 1);
+          else current.push(val);
+        }
+        menu.querySelectorAll('.iselect-option').forEach(o => {
+          const v = o.dataset.value;
+          o.classList.toggle('active', v === '' ? filters[cfg.filterKey].length === 0 : filters[cfg.filterKey].includes(v));
+        });
+        updateIconSelectLabel(cfg, filters[cfg.filterKey]);
+      } else {
+        filters[cfg.filterKey] = val;
+        menu.querySelectorAll('.iselect-option').forEach(o => o.classList.toggle('active', o === opt));
+        updateIconSelectLabel(cfg, val);
+        closeAllIconSelects();
+      }
+      if (cfg.onSelect) cfg.onSelect(val);
       applyFilters();
     });
   });
@@ -625,16 +657,16 @@ function fillDatalist(id, values) {
 }
 
 function hasActiveFilters() {
-  return !!(filters.search || filters.type || filters.bookmaker || filters.competition || filters.pays || filters.saison || filters.dateFrom || filters.dateTo);
+  return !!(filters.search || filters.type.length || filters.bookmaker.length || filters.competition.length || filters.pays.length || filters.saison.length || filters.dateFrom || filters.dateTo);
 }
 
 function getFilteredEntries() {
   return state.entries.filter(e => {
-    if (filters.type && e.type !== filters.type) return false;
-    if (filters.bookmaker && e.bookmaker !== filters.bookmaker) return false;
-    if (filters.competition && e.competition !== filters.competition) return false;
-    if (filters.pays && e.pays !== filters.pays) return false;
-    if (filters.saison && e.saison !== filters.saison) return false;
+    if (filters.type.length && !filters.type.includes(e.type)) return false;
+    if (filters.bookmaker.length && !filters.bookmaker.includes(e.bookmaker)) return false;
+    if (filters.competition.length && !filters.competition.includes(e.competition)) return false;
+    if (filters.pays.length && !filters.pays.includes(e.pays)) return false;
+    if (filters.saison.length && !filters.saison.includes(e.saison)) return false;
     if (filters.dateFrom && e.date && e.date < filters.dateFrom) return false;
     if (filters.dateTo && e.date && e.date > filters.dateTo) return false;
     if (filters.search) {
@@ -846,10 +878,34 @@ document.getElementById('typeSegmented').addEventListener('click', (e) => {
   document.getElementById(id).addEventListener('input', updateProfitPreview);
 });
 
-document.getElementById('fCompetitionInput').addEventListener('input', () => {
+function guessCountryForCompetition(comp) {
+  if (COMPETITION_PAYS[comp]) return COMPETITION_PAYS[comp];
+  const counts = {};
+  state.entries.forEach(e => {
+    if (e.competition === comp && e.pays) counts[e.pays] = (counts[e.pays] || 0) + 1;
+  });
+  const best = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  return best ? best[0] : null;
+}
+
+let compPollTimer = null;
+let lastCompPolled = '';
+function checkCompetitionValue() {
   const comp = document.getElementById('fCompetitionInput').value.trim();
-  const pays = COMPETITION_PAYS[comp];
-  if (pays) document.getElementById('fPays').value = pays;
+  if (comp && comp !== lastCompPolled) {
+    lastCompPolled = comp;
+    const pays = guessCountryForCompetition(comp);
+    if (pays) document.getElementById('fPays').value = pays;
+  }
+}
+const fCompEl = document.getElementById('fCompetitionInput');
+fCompEl.addEventListener('focus', () => {
+  lastCompPolled = fCompEl.value.trim();
+  compPollTimer = setInterval(checkCompetitionValue, 150);
+});
+fCompEl.addEventListener('blur', () => {
+  clearInterval(compPollTimer);
+  checkCompetitionValue();
 });
 
 function isResultGagne() {
@@ -984,7 +1040,7 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modalOv
 
 document.getElementById('fSearch').addEventListener('input', (e) => { filters.search = e.target.value; applyFilters(); });
 document.getElementById('btnResetFilters').addEventListener('click', () => {
-  filters = { search: '', type: '', bookmaker: '', competition: '', pays: '', saison: '', periode: '', dateFrom: '', dateTo: '' };
+  filters = { search: '', type: [], bookmaker: [], competition: [], pays: [], saison: [], periode: '', dateFrom: '', dateTo: '' };
   document.getElementById('fSearch').value = '';
   document.getElementById('fDateFrom').value = '';
   document.getElementById('fDateTo').value = '';
