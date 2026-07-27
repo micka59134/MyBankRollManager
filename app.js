@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.1.0';
+const APP_VERSION = '2.2.0';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -131,20 +131,6 @@ const COMPETITION_LOGOS = {
   'Trophée des champions': 'lfp.png',
 };
 
-const COMPETITION_PAYS = {
-  'Ligue 1': 'France', 'Ligue 2': 'France', 'Coupe de France': 'France',
-  'Trophée des champions': 'France',
-  'LaLiga': 'Espagne', 'Serie A': 'Italie', 'Ligua Portugal': 'Portugal',
-  'Premier League': 'Angleterre', 'Premiership': 'Ecosse',
-  'Ligue des Champions': 'Europe', 'Ligue Europa': 'Europe',
-  'Ligue des Nations': 'Europe', 'Euro 2024': 'Europe',
-  'Coupe du Monde 2022': 'Monde', 'Coupe du Monde 2026': 'Monde',
-  'Coupe du Monde des Clubs': 'Monde', 'JO Paris 2024': 'Monde',
-  'Amicaux': 'Monde',
-  'NBA': 'Etats-Unis', 'NHL': 'Etats-Unis',
-  'Tour de France de cyclisme': 'France',
-};
-
 function competitionIconHtml(name) {
   const logo = COMPETITION_LOGOS[name];
   if (logo) return `<img class="competition-logo" src="vendor/competitions/${logo}" alt="">`;
@@ -157,7 +143,6 @@ function competitionIconHtml(name) {
 let currentProfile = localStorage.getItem(PROFILE_STORAGE_KEY) || PROFILES[0];
 let state = loadState(currentProfile);
 let filters = { search: '', type: [], bookmaker: [], competition: [], pays: [], saison: [], periode: '', dateFrom: '', dateTo: '' };
-// Entries are always displayed most-recent-first
 let chart = null;
 let editingId = null;
 
@@ -385,10 +370,7 @@ function computeStats(entries) {
   const nbParisGratuits = parisGratuits.length;
   const totalMiseGratuit = parisGratuits.reduce((s, e) => s + numOr0(e.montantParie), 0);
   const totalGagneGratuit = parisGratuits.reduce((s, e) => s + numOr0(e.montantGagne), 0);
-  const totalDepots = entries.filter(e => e.type === 'Dépôt').reduce((s, e) => s + numOr0(e.credit), 0);
-  const totalRetraits = entries.filter(e => e.type === 'Retrait').reduce((s, e) => s + numOr0(e.retrait), 0);
-  const montantInvesti = totalDepots - totalRetraits;
-  return { totalMise, totalGagne, profitTotal, tauxReussite, nbParis: paris.length, gagnants, nbParisGratuits, totalMiseGratuit, totalGagneGratuit, montantInvesti };
+  return { totalMise, totalGagne, profitTotal, tauxReussite, nbParis: paris.length, gagnants, nbParisGratuits, totalMiseGratuit, totalGagneGratuit };
 }
 
 function renderCards(entries) {
@@ -819,13 +801,11 @@ function openModal(id = null) {
   updateFieldVisibility(type);
   updateProfitPreview();
   modalOverlay.hidden = false;
-  startAutoFillPays();
 }
 
 function closeModal() {
   modalOverlay.hidden = true;
   editingId = null;
-  stopAutoFillPays();
 }
 
 function todayIso() {
@@ -878,32 +858,6 @@ document.getElementById('typeSegmented').addEventListener('click', (e) => {
 ['fMontantGagne', 'fMontantParie'].forEach(id => {
   document.getElementById(id).addEventListener('input', updateProfitPreview);
 });
-
-function guessCountryForCompetition(comp) {
-  if (COMPETITION_PAYS[comp]) return COMPETITION_PAYS[comp];
-  const counts = {};
-  state.entries.forEach(e => {
-    if (e.competition === comp && e.pays) counts[e.pays] = (counts[e.pays] || 0) + 1;
-  });
-  const best = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-  return best ? best[0] : null;
-}
-
-let autoFillTimer = null;
-function startAutoFillPays() {
-  stopAutoFillPays();
-  autoFillTimer = setInterval(() => {
-    const comp = document.getElementById('fCompetitionInput').value.trim();
-    if (!comp) return;
-    const paysField = document.getElementById('fPays');
-    if (paysField.value.trim()) return;
-    const pays = guessCountryForCompetition(comp);
-    if (pays) paysField.value = pays;
-  }, 300);
-}
-function stopAutoFillPays() {
-  if (autoFillTimer) { clearInterval(autoFillTimer); autoFillTimer = null; }
-}
 
 function isResultGagne() {
   const active = document.querySelector('#resultSegmented .seg-btn.active');
@@ -1058,7 +1012,6 @@ document.getElementById('fDateTo').addEventListener('input', (e) => {
   populateFilterOptions();
   applyFilters();
 });
-
 
 /* =========================================================================
    Thème
