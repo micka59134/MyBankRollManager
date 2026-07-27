@@ -887,25 +887,19 @@ function guessCountryForCompetition(comp) {
   return best ? best[0] : null;
 }
 
-let compPollTimer = null;
-let lastCompPolled = '';
-function checkCompetitionValue() {
+function autoFillPays() {
   const comp = document.getElementById('fCompetitionInput').value.trim();
-  if (comp && comp !== lastCompPolled) {
-    lastCompPolled = comp;
-    const pays = guessCountryForCompetition(comp);
-    if (pays) document.getElementById('fPays').value = pays;
-  }
+  if (!comp) return;
+  const paysField = document.getElementById('fPays');
+  if (paysField.value.trim()) return;
+  const pays = guessCountryForCompetition(comp);
+  if (pays) paysField.value = pays;
 }
-const fCompEl = document.getElementById('fCompetitionInput');
-fCompEl.addEventListener('focus', () => {
-  lastCompPolled = fCompEl.value.trim();
-  compPollTimer = setInterval(checkCompetitionValue, 150);
-});
-fCompEl.addEventListener('blur', () => {
-  clearInterval(compPollTimer);
-  checkCompetitionValue();
-});
+document.getElementById('fPays').addEventListener('focus', autoFillPays);
+document.getElementById('fSaisonInput').addEventListener('focus', autoFillPays);
+document.getElementById('fTypeDeParis').addEventListener('focus', autoFillPays);
+document.getElementById('fCote').addEventListener('focus', autoFillPays);
+document.getElementById('fMontantParie').addEventListener('focus', autoFillPays);
 
 function isResultGagne() {
   const active = document.querySelector('#resultSegmented .seg-btn.active');
