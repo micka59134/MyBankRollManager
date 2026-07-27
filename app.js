@@ -887,19 +887,15 @@ function guessCountryForCompetition(comp) {
   return best ? best[0] : null;
 }
 
-function autoFillPays() {
+document.getElementById('entryForm').addEventListener('focusin', (e) => {
+  if (e.target.id === 'fCompetitionInput') return;
   const comp = document.getElementById('fCompetitionInput').value.trim();
   if (!comp) return;
   const paysField = document.getElementById('fPays');
   if (paysField.value.trim()) return;
   const pays = guessCountryForCompetition(comp);
   if (pays) paysField.value = pays;
-}
-document.getElementById('fPays').addEventListener('focus', autoFillPays);
-document.getElementById('fSaisonInput').addEventListener('focus', autoFillPays);
-document.getElementById('fTypeDeParis').addEventListener('focus', autoFillPays);
-document.getElementById('fCote').addEventListener('focus', autoFillPays);
-document.getElementById('fMontantParie').addEventListener('focus', autoFillPays);
+});
 
 function isResultGagne() {
   const active = document.querySelector('#resultSegmented .seg-btn.active');
