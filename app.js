@@ -819,11 +819,13 @@ function openModal(id = null) {
   updateFieldVisibility(type);
   updateProfitPreview();
   modalOverlay.hidden = false;
+  startAutoFillPays();
 }
 
 function closeModal() {
   modalOverlay.hidden = true;
   editingId = null;
+  stopAutoFillPays();
 }
 
 function todayIso() {
@@ -887,15 +889,21 @@ function guessCountryForCompetition(comp) {
   return best ? best[0] : null;
 }
 
-document.getElementById('entryForm').addEventListener('focusin', (e) => {
-  if (e.target.id === 'fCompetitionInput') return;
-  const comp = document.getElementById('fCompetitionInput').value.trim();
-  if (!comp) return;
-  const paysField = document.getElementById('fPays');
-  if (paysField.value.trim()) return;
-  const pays = guessCountryForCompetition(comp);
-  if (pays) paysField.value = pays;
-});
+let autoFillTimer = null;
+function startAutoFillPays() {
+  stopAutoFillPays();
+  autoFillTimer = setInterval(() => {
+    const comp = document.getElementById('fCompetitionInput').value.trim();
+    if (!comp) return;
+    const paysField = document.getElementById('fPays');
+    if (paysField.value.trim()) return;
+    const pays = guessCountryForCompetition(comp);
+    if (pays) paysField.value = pays;
+  }, 300);
+}
+function stopAutoFillPays() {
+  if (autoFillTimer) { clearInterval(autoFillTimer); autoFillTimer = null; }
+}
 
 function isResultGagne() {
   const active = document.querySelector('#resultSegmented .seg-btn.active');
