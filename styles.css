@@ -342,7 +342,7 @@ textarea.input { resize: vertical; font-family: inherit; }
 
 /* Settings modal */
 .modal-settings { width: 520px; }
-.settings-hint { font-size: 13px; color: var(--text-muted); margin: 0 0 12px; line-height: 1.4; }
+.settings-hint, .form-hint { font-size: 13px; color: var(--text-muted); margin: 0 0 12px; line-height: 1.4; }
 .settings-section { border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px; }
 .settings-section summary {
   display: flex; align-items: center; gap: 8px; padding: 10px 14px;

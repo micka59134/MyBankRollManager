@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.5.0';
+const APP_VERSION = '2.6.0';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -637,10 +637,17 @@ function initIconSelects() {
 
 function populateDatalists() {
   const activeSet = new Set(state.activeBookmakers || []);
-  fillDatalist('listBookmaker', state.constantes.bookmakers.filter(b => activeSet.has(b)));
+  fillSelect('fBookmakerInput', state.constantes.bookmakers.filter(b => activeSet.has(b)));
   const activeCompSet = new Set(state.activeCompetitions || []);
-  fillDatalist('listCompetition', state.constantes.competitions.filter(c => activeCompSet.has(c)));
+  fillSelect('fCompetitionInput', state.constantes.competitions.filter(c => activeCompSet.has(c)));
   fillDatalist('listTypeDeParis', state.constantes.typesDeParis);
+}
+
+function fillSelect(id, values) {
+  const sel = document.getElementById(id);
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— Choisir —</option>' + values.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+  sel.value = current;
 }
 
 function fillDatalist(id, values) {
@@ -921,9 +928,7 @@ entryForm.addEventListener('submit', (e) => {
   const saison = guessSaisonForDate(dateValue);
   const typeDeParis = document.getElementById('fTypeDeParis').value.trim();
 
-  addConstante('bookmakers', bookmaker);
   if (BET_TYPES.has(type)) {
-    addConstante('competitions', competition);
     addConstante('typesDeParis', typeDeParis);
   }
 
