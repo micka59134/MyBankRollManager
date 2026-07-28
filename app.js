@@ -118,7 +118,7 @@ const COMPETITION_LOGOS = {
   'Euro 2024': 'uefa.png',
   'Coupe de France': 'fff.png',
   'Coupe du Monde 2022': 'fifa.png',
-  'Coupe du Monde 2026': 'fifa.png',
+  'Coupe du Monde 2026': 'coupedumonde2026.png',
   'Coupe du Monde des Clubs': 'fifa.png',
   'JO Paris 2024': 'jo.png',
   'LaLiga': 'laliga.png',
