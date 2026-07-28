@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.4.0';
+const APP_VERSION = '2.5.0';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -179,12 +179,10 @@ function loadState(profile) {
       }
       if (!parsed.activeBookmakers) parsed.activeBookmakers = [...parsed.constantes.bookmakers];
       if (!parsed.activeCompetitions) parsed.activeCompetitions = [...parsed.constantes.competitions];
-      if (!parsed.activePays) parsed.activePays = [...parsed.constantes.pays];
-      if (!parsed.activeSaisons) parsed.activeSaisons = [...parsed.constantes.saisons];
       return parsed;
     }
   } catch (e) { console.warn('Etat local corrompu, réinitialisation.', e); }
-  return { entries: [], constantes: cloneConstantes(DEFAULT_CONSTANTES), nextOrder: 1, activeBookmakers: [...DEFAULT_CONSTANTES.bookmakers], activeCompetitions: [...DEFAULT_CONSTANTES.competitions], activePays: [...DEFAULT_CONSTANTES.pays], activeSaisons: [...DEFAULT_CONSTANTES.saisons] };
+  return { entries: [], constantes: cloneConstantes(DEFAULT_CONSTANTES), nextOrder: 1, activeBookmakers: [...DEFAULT_CONSTANTES.bookmakers], activeCompetitions: [...DEFAULT_CONSTANTES.competitions] };
 }
 
 function cloneConstantes(c) {
@@ -218,8 +216,6 @@ function stateForFirestore() {
     entries,
     activeBookmakers: rest.activeBookmakers || [],
     activeCompetitions: rest.activeCompetitions || [],
-    activePays: rest.activePays || [],
-    activeSaisons: rest.activeSaisons || [],
     nextOrder: rest.nextOrder || 1,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
   };
@@ -247,8 +243,6 @@ function applyFirestoreData(data) {
   }
   state.activeBookmakers = data.activeBookmakers || [...DEFAULT_CONSTANTES.bookmakers];
   state.activeCompetitions = data.activeCompetitions || [...DEFAULT_CONSTANTES.competitions];
-  state.activePays = data.activePays || [...DEFAULT_CONSTANTES.pays];
-  state.activeSaisons = data.activeSaisons || [...DEFAULT_CONSTANTES.saisons];
   state.nextOrder = data.nextOrder || state.entries.length + 1;
   state.constantes = mergeConstantes(DEFAULT_CONSTANTES, {});
   const merge = (constList, activeList) => {
@@ -259,8 +253,6 @@ function applyFirestoreData(data) {
   };
   merge(state.constantes.bookmakers, state.activeBookmakers);
   merge(state.constantes.competitions, state.activeCompetitions);
-  merge(state.constantes.pays, state.activePays);
-  merge(state.constantes.saisons, state.activeSaisons);
   localStorage.setItem(storageKeyFor(currentProfile), JSON.stringify(state));
   firestoreUpdating = false;
 }
@@ -1140,8 +1132,6 @@ document.getElementById('btnBackup').addEventListener('click', () => {
       entries: state.entries,
       activeBookmakers: state.activeBookmakers,
       activeCompetitions: state.activeCompetitions,
-      activePays: state.activePays,
-      activeSaisons: state.activeSaisons,
       nextOrder: state.nextOrder
     }
   };
