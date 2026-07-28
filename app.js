@@ -131,6 +131,19 @@ const COMPETITION_LOGOS = {
   'Trophée des champions': 'lfp.png',
 };
 
+const COMPETITION_PAYS = {
+  'Ligue 1': 'France', 'Ligue 2': 'France', 'Coupe de France': 'France',
+  'Trophée des champions': 'France',
+  'LaLiga': 'Espagne', 'Serie A': 'Italie', 'Ligua Portugal': 'Portugal',
+  'Premier League': 'Angleterre', 'Premiership': 'Ecosse', 'Premiership Ecosse': 'Ecosse',
+  'Ligue des Champions': 'Europe', 'Ligue Europa': 'Europe',
+  'Ligue des Nations': 'Europe', 'Euro 2024': 'Europe',
+  'Coupe du Monde 2022': 'Monde', 'Coupe du Monde des Clubs': 'Monde',
+  'Amicaux': 'Monde', 'JO Paris 2024': 'Monde', 'Coupe du Monde 2026': 'Monde',
+  'Tour de France de cyclisme': 'Monde',
+  'NBA': 'Etats-Unis', 'NHL': 'Etats-Unis',
+};
+
 function competitionIconHtml(name) {
   const logo = COMPETITION_LOGOS[name];
   if (logo) return `<img class="competition-logo" src="vendor/competitions/${logo}" alt="">`;
@@ -625,8 +638,6 @@ function populateDatalists() {
   fillDatalist('listBookmaker', state.constantes.bookmakers.filter(b => activeSet.has(b)));
   const activeCompSet = new Set(state.activeCompetitions || []);
   fillDatalist('listCompetition', state.constantes.competitions.filter(c => activeCompSet.has(c)));
-  const activePaysSet = new Set(state.activePays || []);
-  fillDatalist('listPays', state.constantes.pays.filter(p => activePaysSet.has(p)));
   const activeSaisonSet = new Set(state.activeSaisons || []);
   fillDatalist('listSaison', state.constantes.saisons.filter(s => activeSaisonSet.has(s)));
   fillDatalist('listTypeDeParis', state.constantes.typesDeParis);
@@ -786,7 +797,6 @@ function openModal(id = null) {
   document.getElementById('fBookmakerInput').value = entry ? (entry.bookmaker || '') : '';
   document.getElementById('fParis').value = entry ? (entry.paris || '') : '';
   document.getElementById('fCompetitionInput').value = entry ? (entry.competition || '') : '';
-  document.getElementById('fPays').value = entry ? (entry.pays || '') : '';
   document.getElementById('fSaisonInput').value = entry ? (entry.saison || '') : '';
   document.getElementById('fTypeDeParis').value = entry ? (entry.typeDeParis || '') : '';
   document.getElementById('fCote').value = entry && entry.cote != null ? entry.cote : '';
@@ -907,14 +917,13 @@ entryForm.addEventListener('submit', (e) => {
 
   const bookmaker = document.getElementById('fBookmakerInput').value.trim();
   const competition = document.getElementById('fCompetitionInput').value.trim();
-  const pays = document.getElementById('fPays').value.trim();
+  const pays = COMPETITION_PAYS[competition] || null;
   const saison = document.getElementById('fSaisonInput').value.trim();
   const typeDeParis = document.getElementById('fTypeDeParis').value.trim();
 
   addConstante('bookmakers', bookmaker);
   if (BET_TYPES.has(type)) {
     addConstante('competitions', competition);
-    addConstante('pays', pays);
     addConstante('saisons', saison);
     addConstante('typesDeParis', typeDeParis);
   }
