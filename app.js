@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.2.0';
+const APP_VERSION = '2.3.0';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -23,6 +23,7 @@ let firestoreUpdating = false;
 let firestoreUnsubscribe = null;
 let firestoreConnected = false;
 let saveTimer = null;
+let lastLocalSaveTime = 0;
 const SAVE_DEBOUNCE = 1500;
 
 const PROFILE_STORAGE_KEY = 'bankrollManager.profile';
@@ -226,6 +227,7 @@ function stateForFirestore() {
 
 async function saveToFirestore() {
   try {
+    lastLocalSaveTime = Date.now();
     await db.collection('profiles').doc(currentProfile).set(stateForFirestore());
     firestoreConnected = true;
     updateSyncStatus();
@@ -270,7 +272,8 @@ function startFirestoreListener(profile) {
       firestoreConnected = true;
       if (doc.exists) {
         const data = doc.data();
-        if (!firestoreUpdating) {
+        const isLocalEcho = Date.now() - lastLocalSaveTime < 3000;
+        if (!firestoreUpdating && !isLocalEcho) {
           applyFirestoreData(data);
           refreshAllFromFirestore();
         }
