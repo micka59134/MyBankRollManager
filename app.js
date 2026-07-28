@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.3.0';
+const APP_VERSION = '2.4.0';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -494,8 +494,8 @@ const ICON_SELECTS = [
   { id: 'fType', filterKey: 'type', placeholder: 'Tous types', getOptions: () => TYPES.map(t => ({ value: t, label: t, icon: typeIconHtml(t) })) },
   { id: 'fBookmaker', filterKey: 'bookmaker', placeholder: 'Tous bookmakers', getOptions: () => { const active = new Set(state.activeBookmakers || []); return state.constantes.bookmakers.filter(b => active.has(b)).map(b => ({ value: b, label: b, icon: bookmakerLogoHtml(b) })); } },
   { id: 'fCompetition', filterKey: 'competition', placeholder: 'Toutes compétitions', getOptions: () => { const active = new Set(state.activeCompetitions || []); return state.constantes.competitions.filter(c => active.has(c)).map(c => ({ value: c, label: c, icon: competitionIconHtml(c) })); } },
-  { id: 'fPays', filterKey: 'pays', placeholder: 'Tous pays', getOptions: () => { const active = new Set(state.activePays || []); return state.constantes.pays.filter(p => active.has(p)).map(p => ({ value: p, label: p, icon: countryFlagHtml(p) })); } },
-  { id: 'fSaison', filterKey: 'saison', placeholder: 'Toutes saisons', getOptions: () => { const active = new Set(state.activeSaisons || []); return state.constantes.saisons.filter(s => active.has(s)).map(s => ({ value: s, label: s, icon: '<img class="icon-svg" src="vendor/icons/calendrier.svg" alt="">' })); } },
+  { id: 'fPays', filterKey: 'pays', placeholder: 'Tous pays', getOptions: () => { const used = [...new Set(state.entries.map(e => e.pays).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr')); return used.map(p => ({ value: p, label: p, icon: countryFlagHtml(p) })); } },
+  { id: 'fSaison', filterKey: 'saison', placeholder: 'Toutes saisons', getOptions: () => { const used = [...new Set(state.entries.map(e => e.saison).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr')); return used.map(s => ({ value: s, label: s, icon: '<img class="icon-svg" src="vendor/icons/calendrier.svg" alt="">' })); } },
   { id: 'fPeriode', filterKey: 'periode', placeholder: 'Toutes dates', getOptions: () => PERIOD_PRESETS.map(p => ({ value: p.value, label: p.label, icon: '<img class="icon-svg" src="vendor/icons/calendrier.svg" alt="">' })), onSelect: applyPeriodPreset },
 ];
 
@@ -1086,8 +1086,6 @@ function openSettings() {
   document.getElementById('settingsProfileName').textContent = currentProfile;
   renderSettingsSection('bookmakerCheckboxes', 'countBookmakers', state.constantes.bookmakers, new Set(state.activeBookmakers || []), 'chkBk');
   renderSettingsSection('competitionCheckboxes', 'countCompetitions', state.constantes.competitions, new Set(state.activeCompetitions || []), 'chkComp');
-  renderSettingsSection('paysCheckboxes', 'countPays', state.constantes.pays, new Set(state.activePays || []), 'chkPays');
-  renderSettingsSection('saisonCheckboxes', 'countSaisons', state.constantes.saisons, new Set(state.activeSaisons || []), 'chkSaison');
   document.getElementById('settingsOverlay').hidden = false;
 }
 
@@ -1100,10 +1098,6 @@ function saveSettings() {
   state.activeBookmakers = [...bkCheckboxes].filter(c => c.checked).map(c => c.value);
   const compCheckboxes = document.querySelectorAll('#competitionCheckboxes input[type="checkbox"]');
   state.activeCompetitions = [...compCheckboxes].filter(c => c.checked).map(c => c.value);
-  const paysCheckboxes = document.querySelectorAll('#paysCheckboxes input[type="checkbox"]');
-  state.activePays = [...paysCheckboxes].filter(c => c.checked).map(c => c.value);
-  const saisonCheckboxes = document.querySelectorAll('#saisonCheckboxes input[type="checkbox"]');
-  state.activeSaisons = [...saisonCheckboxes].filter(c => c.checked).map(c => c.value);
   saveState();
   closeSettings();
   refreshAll();
@@ -1129,8 +1123,6 @@ function addSettingsItem(inputId, constKey, activeKey, checkboxesId) {
 
 document.getElementById('btnAddBookmaker').addEventListener('click', () => addSettingsItem('newBookmaker', 'bookmakers', 'activeBookmakers', 'bookmakerCheckboxes'));
 document.getElementById('btnAddCompetition').addEventListener('click', () => addSettingsItem('newCompetition', 'competitions', 'activeCompetitions', 'competitionCheckboxes'));
-document.getElementById('btnAddPays').addEventListener('click', () => addSettingsItem('newPays', 'pays', 'activePays', 'paysCheckboxes'));
-document.getElementById('btnAddSaison').addEventListener('click', () => addSettingsItem('newSaison', 'saisons', 'activeSaisons', 'saisonCheckboxes'));
 
 document.getElementById('btnSettings').addEventListener('click', openSettings);
 document.getElementById('btnCloseSettings').addEventListener('click', closeSettings);
