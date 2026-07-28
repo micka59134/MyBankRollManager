@@ -112,7 +112,7 @@ const COMPETITION_ICON_RULES = [
 const COMPETITION_LOGOS = {
   'Ligue 1': 'ligue1.png',
   'Ligue 2': 'ligue2.png',
-  'Ligue des Champions': 'uefa.png',
+  'Ligue des Champions': 'UEFA_Champions_League_logo.png',
   'Ligue Europa': 'uefa.png',
   'Ligue des Nations': 'uefa.png',
   'Euro 2024': 'uefa.png',
