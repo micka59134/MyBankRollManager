@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.6.0';
+const APP_VERSION = '2.6.1';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -994,6 +994,7 @@ document.getElementById('btnDelete').addEventListener('click', () => {
 document.getElementById('btnAdd').addEventListener('click', () => openModal());
 document.getElementById('btnAddEmpty').addEventListener('click', () => openModal());
 document.getElementById('btnCloseModal').addEventListener('click', closeModal);
+document.getElementById('linkSettings').addEventListener('click', (e) => { e.preventDefault(); closeModal(); openSettings(); });
 document.getElementById('btnCancel').addEventListener('click', closeModal);
 modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modalOverlay.hidden) closeModal(); });
