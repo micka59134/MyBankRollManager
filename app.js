@@ -144,6 +144,13 @@ const COMPETITION_PAYS = {
   'NBA': 'Etats-Unis', 'NHL': 'Etats-Unis',
 };
 
+function guessSaisonForDate(isoDate) {
+  if (!isoDate) return null;
+  const [y, m] = isoDate.split('-').map(Number);
+  const startYear = m >= 8 ? y : y - 1;
+  return `${startYear}/${startYear + 1}`;
+}
+
 function competitionIconHtml(name) {
   const logo = COMPETITION_LOGOS[name];
   if (logo) return `<img class="competition-logo" src="vendor/competitions/${logo}" alt="">`;
@@ -638,8 +645,6 @@ function populateDatalists() {
   fillDatalist('listBookmaker', state.constantes.bookmakers.filter(b => activeSet.has(b)));
   const activeCompSet = new Set(state.activeCompetitions || []);
   fillDatalist('listCompetition', state.constantes.competitions.filter(c => activeCompSet.has(c)));
-  const activeSaisonSet = new Set(state.activeSaisons || []);
-  fillDatalist('listSaison', state.constantes.saisons.filter(s => activeSaisonSet.has(s)));
   fillDatalist('listTypeDeParis', state.constantes.typesDeParis);
 }
 
@@ -797,7 +802,6 @@ function openModal(id = null) {
   document.getElementById('fBookmakerInput').value = entry ? (entry.bookmaker || '') : '';
   document.getElementById('fParis').value = entry ? (entry.paris || '') : '';
   document.getElementById('fCompetitionInput').value = entry ? (entry.competition || '') : '';
-  document.getElementById('fSaisonInput').value = entry ? (entry.saison || '') : '';
   document.getElementById('fTypeDeParis').value = entry ? (entry.typeDeParis || '') : '';
   document.getElementById('fCote').value = entry && entry.cote != null ? entry.cote : '';
   document.getElementById('fMontantParie').value = entry && entry.montantParie != null ? entry.montantParie : '';
@@ -918,13 +922,13 @@ entryForm.addEventListener('submit', (e) => {
   const bookmaker = document.getElementById('fBookmakerInput').value.trim();
   const competition = document.getElementById('fCompetitionInput').value.trim();
   const pays = COMPETITION_PAYS[competition] || null;
-  const saison = document.getElementById('fSaisonInput').value.trim();
+  const dateValue = document.getElementById('fDate').value;
+  const saison = guessSaisonForDate(dateValue);
   const typeDeParis = document.getElementById('fTypeDeParis').value.trim();
 
   addConstante('bookmakers', bookmaker);
   if (BET_TYPES.has(type)) {
     addConstante('competitions', competition);
-    addConstante('saisons', saison);
     addConstante('typesDeParis', typeDeParis);
   }
 
