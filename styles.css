@@ -374,7 +374,7 @@ textarea.input { resize: vertical; font-family: inherit; }
 .input-sm { padding: 5px 8px; font-size: 13px; }
 .btn-sm { padding: 5px 10px; font-size: 13px; font-weight: 600; white-space: nowrap; min-width: 28px; }
 .segmented-sm { gap: 4px; }
-.segmented-sm .seg-btn { min-width: 70px; padding: 7px 8px; font-size: 12.5px; }
+.segmented-sm .seg-btn { min-width: 70px; padding: 9px 12px; font-size: 14px; }
 .seg-btn-green.active { background: var(--green); border-color: var(--green); color: #fff; }
 .seg-btn-red.active { background: var(--red); border-color: var(--red); color: #fff; }
 
