@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.6.1';
+const APP_VERSION = '2.7.0';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -1068,12 +1068,12 @@ function showToast(msg, duration = 2600) {
    Settings modal
    ========================================================================= */
 
-function renderSettingsSection(containerId, countId, items, activeSet, prefix) {
+function renderSettingsSection(containerId, countId, items, activeSet, prefix, iconFn) {
   const container = document.getElementById(containerId);
   container.innerHTML = items.map((v, i) => `
     <div class="checkbox-item">
       <input type="checkbox" id="${prefix}${i}" value="${escapeHtml(v)}" ${activeSet.has(v) ? 'checked' : ''}>
-      <label for="${prefix}${i}">${escapeHtml(v)}</label>
+      <label for="${prefix}${i}">${iconFn ? iconFn(v) : ''}${escapeHtml(v)}</label>
     </div>
   `).join('');
   const count = items.filter(v => activeSet.has(v)).length;
@@ -1082,8 +1082,8 @@ function renderSettingsSection(containerId, countId, items, activeSet, prefix) {
 
 function openSettings() {
   document.getElementById('settingsProfileName').textContent = currentProfile;
-  renderSettingsSection('bookmakerCheckboxes', 'countBookmakers', state.constantes.bookmakers, new Set(state.activeBookmakers || []), 'chkBk');
-  renderSettingsSection('competitionCheckboxes', 'countCompetitions', state.constantes.competitions, new Set(state.activeCompetitions || []), 'chkComp');
+  renderSettingsSection('bookmakerCheckboxes', 'countBookmakers', state.constantes.bookmakers, new Set(state.activeBookmakers || []), 'chkBk', bookmakerLogoHtml);
+  renderSettingsSection('competitionCheckboxes', 'countCompetitions', state.constantes.competitions, new Set(state.activeCompetitions || []), 'chkComp', competitionIconHtml);
   document.getElementById('settingsOverlay').hidden = false;
 }
 
