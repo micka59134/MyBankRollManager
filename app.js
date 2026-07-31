@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.7.0';
+const APP_VERSION = '2.8.0';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -112,18 +112,29 @@ const COMPETITION_ICON_RULES = [
 const COMPETITION_LOGOS = {
   'Ligue 1': 'ligue1.png',
   'Ligue 2': 'ligue2.png',
+  'National': 'national.png',
   'Ligue des Champions': 'uefa.png',
   'Ligue Europa': 'uefa.png',
+  'Ligue Conférence': 'conference.png',
   'Ligue des Nations': 'uefa.png',
   'Euro 2024': 'uefa.png',
+  'Euro 2028': 'euro2028.png',
   'Coupe de France': 'fff.png',
   'Coupe du Monde 2022': 'fifa.png',
   'Coupe du Monde 2026': 'coupedumonde2026.png',
   'Coupe du Monde des Clubs': 'fifa.png',
+  'Copa America': 'copaamerica.png',
   'JO Paris 2024': 'jo.png',
   'LaLiga': 'laliga.png',
   'Ligua Portugal': 'ligaportugal.png',
+  'Bundesliga': 'bundesliga.png',
+  'Eredivisie': 'eredivisie.png',
+  'Championship': 'championship.png',
+  'Super Lig': 'superlig.png',
   'Tour de France de cyclisme': 'tourdefrance.png',
+  'Top 14': 'top14.png',
+  'Roland Garros': 'rolandgarros.png',
+  'Formule 1': 'formule1.png',
   'NBA': 'nba.png',
   'NHL': 'nhl.png',
   'Premier League': 'premierleague.png',
@@ -133,15 +144,21 @@ const COMPETITION_LOGOS = {
 };
 
 const COMPETITION_PAYS = {
-  'Ligue 1': 'France', 'Ligue 2': 'France', 'Coupe de France': 'France',
-  'Trophée des champions': 'France',
+  'Ligue 1': 'France', 'Ligue 2': 'France', 'National': 'France',
+  'Coupe de France': 'France', 'Trophée des champions': 'France',
+  'Top 14': 'France', 'Roland Garros': 'France',
   'LaLiga': 'Espagne', 'Serie A': 'Italie', 'Ligua Portugal': 'Portugal',
-  'Premier League': 'Angleterre', 'Premiership': 'Ecosse', 'Premiership Ecosse': 'Ecosse',
+  'Bundesliga': 'Allemagne', 'Eredivisie': 'Pays-Bas',
+  'Premier League': 'Angleterre', 'Championship': 'Angleterre',
+  'Premiership': 'Ecosse', 'Premiership Ecosse': 'Ecosse',
+  'Super Lig': 'Turquie',
   'Ligue des Champions': 'Europe', 'Ligue Europa': 'Europe',
-  'Ligue des Nations': 'Europe', 'Euro 2024': 'Europe',
+  'Ligue Conférence': 'Europe', 'Ligue des Nations': 'Europe',
+  'Euro 2024': 'Europe', 'Euro 2028': 'Europe',
   'Coupe du Monde 2022': 'Monde', 'Coupe du Monde des Clubs': 'Monde',
-  'Amicaux': 'Monde', 'JO Paris 2024': 'Monde', 'Coupe du Monde 2026': 'Monde',
-  'Tour de France de cyclisme': 'Monde',
+  'Copa America': 'Monde', 'Amicaux': 'Monde',
+  'JO Paris 2024': 'Monde', 'Coupe du Monde 2026': 'Monde',
+  'Tour de France de cyclisme': 'Monde', 'Formule 1': 'Monde',
   'NBA': 'Etats-Unis', 'NHL': 'Etats-Unis',
 };
 
@@ -1068,12 +1085,16 @@ function showToast(msg, duration = 2600) {
    Settings modal
    ========================================================================= */
 
-function renderSettingsSection(containerId, countId, items, activeSet, prefix, iconFn) {
+function renderSettingsSection(containerId, countId, items, activeSet, prefix, iconFn, constKey, activeKey, entryField) {
   const container = document.getElementById(containerId);
   container.innerHTML = items.map((v, i) => `
     <div class="checkbox-item">
       <input type="checkbox" id="${prefix}${i}" value="${escapeHtml(v)}" ${activeSet.has(v) ? 'checked' : ''}>
       <label for="${prefix}${i}">${iconFn ? iconFn(v) : ''}${escapeHtml(v)}</label>
+      <span class="settings-item-actions">
+        <button type="button" class="btn-settings-action" data-action="rename" data-key="${constKey}" data-active="${activeKey}" data-field="${entryField}" data-value="${escapeHtml(v)}" title="Renommer">✏️</button>
+        <button type="button" class="btn-settings-action" data-action="delete" data-key="${constKey}" data-active="${activeKey}" data-field="${entryField}" data-value="${escapeHtml(v)}" title="Supprimer">🗑️</button>
+      </span>
     </div>
   `).join('');
   const count = items.filter(v => activeSet.has(v)).length;
@@ -1082,8 +1103,8 @@ function renderSettingsSection(containerId, countId, items, activeSet, prefix, i
 
 function openSettings() {
   document.getElementById('settingsProfileName').textContent = currentProfile;
-  renderSettingsSection('bookmakerCheckboxes', 'countBookmakers', state.constantes.bookmakers, new Set(state.activeBookmakers || []), 'chkBk', bookmakerLogoHtml);
-  renderSettingsSection('competitionCheckboxes', 'countCompetitions', state.constantes.competitions, new Set(state.activeCompetitions || []), 'chkComp', competitionIconHtml);
+  renderSettingsSection('bookmakerCheckboxes', 'countBookmakers', state.constantes.bookmakers, new Set(state.activeBookmakers || []), 'chkBk', bookmakerLogoHtml, 'bookmakers', 'activeBookmakers', 'bookmaker');
+  renderSettingsSection('competitionCheckboxes', 'countCompetitions', state.constantes.competitions, new Set(state.activeCompetitions || []), 'chkComp', competitionIconHtml, 'competitions', 'activeCompetitions', 'competition');
   document.getElementById('settingsOverlay').hidden = false;
 }
 
@@ -1118,6 +1139,51 @@ function addSettingsItem(inputId, constKey, activeKey, checkboxesId) {
   input.value = '';
   openSettings();
 }
+
+function renameSettingsItem(constKey, activeKey, entryField, oldValue) {
+  const newValue = prompt(`Renommer "${oldValue}" en :`, oldValue);
+  if (!newValue || newValue.trim() === '' || newValue.trim() === oldValue) return;
+  const trimmed = newValue.trim();
+  if (state.constantes[constKey].includes(trimmed)) {
+    showToast('Cette valeur existe déjà');
+    return;
+  }
+  const idx = state.constantes[constKey].indexOf(oldValue);
+  if (idx !== -1) state.constantes[constKey][idx] = trimmed;
+  state.constantes[constKey].sort((a, b) => a.localeCompare(b, 'fr'));
+  const activeIdx = (state[activeKey] || []).indexOf(oldValue);
+  if (activeIdx !== -1) state[activeKey][activeIdx] = trimmed;
+  for (const e of state.entries) {
+    if (e[entryField] === oldValue) e[entryField] = trimmed;
+  }
+  saveState();
+  openSettings();
+  refreshAll();
+  showToast(`"${oldValue}" renommé en "${trimmed}"`);
+}
+
+function deleteSettingsItem(constKey, activeKey, entryField, value) {
+  const usedCount = state.entries.filter(e => e[entryField] === value).length;
+  let msg = `Supprimer "${value}" ?`;
+  if (usedCount > 0) msg += `\n\n⚠️ Utilisé dans ${usedCount} pari(s). Ces paris garderont l'ancienne valeur mais elle ne sera plus proposée.`;
+  if (!confirm(msg)) return;
+  state.constantes[constKey] = state.constantes[constKey].filter(v => v !== value);
+  if (state[activeKey]) state[activeKey] = state[activeKey].filter(v => v !== value);
+  saveState();
+  openSettings();
+  refreshAll();
+  showToast(`"${value}" supprimé`);
+}
+
+document.querySelectorAll('.modal-settings .modal-body').forEach(body => {
+  body.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-settings-action');
+    if (!btn) return;
+    const { action, key, active, field, value } = btn.dataset;
+    if (action === 'rename') renameSettingsItem(key, active, field, value);
+    else if (action === 'delete') deleteSettingsItem(key, active, field, value);
+  });
+});
 
 document.getElementById('btnAddBookmaker').addEventListener('click', () => addSettingsItem('newBookmaker', 'bookmakers', 'activeBookmakers', 'bookmakerCheckboxes'));
 document.getElementById('newBookmaker').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addSettingsItem('newBookmaker', 'bookmakers', 'activeBookmakers', 'bookmakerCheckboxes'); } });
