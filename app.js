@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.9.0';
+const APP_VERSION = '2.9.1';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -123,7 +123,7 @@ const COMPETITION_LOGOS = {
   'Euro 2024': 'uefa.png',
   'Euro 2028': 'euro2028.png',
   'Coupe de France': 'fff.png',
-  'Coupe du Monde 2022': 'fifa.png',
+  'Coupe du Monde 2022': 'coupedumonde2022.png',
   'Coupe du Monde 2026': 'coupedumonde2026.png',
   'Coupe du Monde des Clubs': 'fifa.png',
   'Copa America': 'copaamerica.png',
