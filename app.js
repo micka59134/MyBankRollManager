@@ -116,7 +116,7 @@ const COMPETITION_LOGOS = {
   'Ligue 1': 'ligue1.png',
   'Ligue 2': 'ligue2.png',
   'National': 'national.png',
-  'Ligue des Champions': 'uefa.png',
+  'Ligue des Champions': 'championsleague.png',
   'Ligue Europa': 'europaleague.png',
   'Ligue Conférence': 'conference.png',
   'Ligue des Nations': 'uefa.png',
