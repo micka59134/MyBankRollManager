@@ -369,6 +369,9 @@ textarea.input { resize: vertical; font-family: inherit; }
 .checkbox-item:hover { background: var(--primary-soft); }
 .checkbox-item input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--primary); cursor: pointer; flex-shrink: 0; }
 .checkbox-item label { cursor: pointer; font-size: 13px; user-select: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+.settings-country-group { margin-bottom: 6px; }
+.settings-country-header { display: flex; align-items: center; gap: 6px; padding: 6px 10px 4px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); border-bottom: 1px solid var(--border); margin-bottom: 2px; }
+.settings-country-header .flag-icon { width: 16px; height: 12px; }
 .settings-item-actions { display: none; flex-shrink: 0; gap: 2px; margin-left: auto; }
 .checkbox-item:hover .settings-item-actions { display: flex; }
 .btn-settings-action { background: none; border: none; cursor: pointer; padding: 2px 4px; font-size: 13px; border-radius: 4px; opacity: 0.6; line-height: 1; }

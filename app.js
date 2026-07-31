@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.8.0';
+const APP_VERSION = '2.9.0';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -159,9 +159,9 @@ const COMPETITION_PAYS = {
   'Ligue Conférence': 'Europe', 'Ligue des Nations': 'Europe',
   'Euro 2024': 'Europe', 'Euro 2028': 'Europe',
   'Coupe du Monde 2022': 'Monde', 'Coupe du Monde des Clubs': 'Monde',
-  'Copa America': 'Monde', 'Amicaux': 'Monde',
+  'Copa America': 'Monde', 'Amicaux': 'France',
   'JO Paris 2024': 'Monde', 'Coupe du Monde 2026': 'Monde',
-  'Tour de France de cyclisme': 'Monde', 'Formule 1': 'Monde',
+  'Tour de France de cyclisme': 'France', 'Formule 1': 'Monde',
   'NBA': 'Etats-Unis', 'NHL': 'Etats-Unis',
 };
 
@@ -1104,10 +1104,46 @@ function renderSettingsSection(containerId, countId, items, activeSet, prefix, i
   document.getElementById(countId).textContent = `${count}/${items.length}`;
 }
 
+const COUNTRY_ORDER = ['France', 'Europe', 'Monde', 'Angleterre', 'Espagne', 'Italie', 'Allemagne', 'Portugal', 'Pays-Bas', 'Ecosse', 'Turquie', 'Etats-Unis'];
+
+function renderCompetitionsByCountry(containerId, countId, items, activeSet, prefix, constKey, activeKey, entryField) {
+  const groups = {};
+  for (const v of items) {
+    const pays = COMPETITION_PAYS[v] || 'Autre';
+    (groups[pays] ||= []).push(v);
+  }
+  const orderedKeys = COUNTRY_ORDER.filter(k => groups[k]);
+  for (const k of Object.keys(groups)) {
+    if (!orderedKeys.includes(k)) orderedKeys.push(k);
+  }
+  const container = document.getElementById(containerId);
+  let idx = 0;
+  container.innerHTML = orderedKeys.map(pays => {
+    const comps = groups[pays];
+    const html = `<div class="settings-country-group">
+      <div class="settings-country-header">${countryFlagHtml(pays)} ${escapeHtml(pays)}</div>
+      ${comps.map(v => {
+        const i = idx++;
+        return `<div class="checkbox-item">
+          <input type="checkbox" id="${prefix}${i}" value="${escapeHtml(v)}" ${activeSet.has(v) ? 'checked' : ''}>
+          <label for="${prefix}${i}">${competitionIconHtml(v)}${escapeHtml(v)}</label>
+          <span class="settings-item-actions">
+            <button type="button" class="btn-settings-action" data-action="rename" data-key="${constKey}" data-active="${activeKey}" data-field="${entryField}" data-value="${escapeHtml(v)}" title="Renommer">✏️</button>
+            <button type="button" class="btn-settings-action" data-action="delete" data-key="${constKey}" data-active="${activeKey}" data-field="${entryField}" data-value="${escapeHtml(v)}" title="Supprimer">🗑️</button>
+          </span>
+        </div>`;
+      }).join('')}
+    </div>`;
+    return html;
+  }).join('');
+  const count = items.filter(v => activeSet.has(v)).length;
+  document.getElementById(countId).textContent = `${count}/${items.length}`;
+}
+
 function openSettings() {
   document.getElementById('settingsProfileName').textContent = currentProfile;
   renderSettingsSection('bookmakerCheckboxes', 'countBookmakers', state.constantes.bookmakers, new Set(state.activeBookmakers || []), 'chkBk', bookmakerLogoHtml, 'bookmakers', 'activeBookmakers', 'bookmaker');
-  renderSettingsSection('competitionCheckboxes', 'countCompetitions', state.constantes.competitions, new Set(state.activeCompetitions || []), 'chkComp', competitionIconHtml, 'competitions', 'activeCompetitions', 'competition');
+  renderCompetitionsByCountry('competitionCheckboxes', 'countCompetitions', state.constantes.competitions, new Set(state.activeCompetitions || []), 'chkComp', 'competitions', 'activeCompetitions', 'competition');
   document.getElementById('settingsOverlay').hidden = false;
 }
 
