@@ -38,9 +38,12 @@ const BET_TYPES = new Set(['Paris', 'Paris gratuit']);
 
 const DEFAULT_CONSTANTES = {
   bookmakers: ['Winamax', 'Unibet', 'Betsson', 'Parions Sport'],
-  competitions: ['Ligue 1', 'Ligue 2', 'Ligue des Champions', 'Ligue Europa', 'Ligue des Nations',
-    'Coupe de France', 'Coupe du Monde 2022', 'Coupe du Monde 2026', 'Coupe du Monde des Clubs',
-    'Euro 2024', 'JO Paris 2024', 'LaLiga', 'Ligua Portugal', 'Tour de France de cyclisme',
+  competitions: ['Ligue 1', 'Ligue 2', 'National', 'Ligue des Champions', 'Ligue Europa',
+    'Ligue Conférence', 'Ligue des Nations', 'Coupe de France', 'Coupe du Monde 2022',
+    'Coupe du Monde 2026', 'Coupe du Monde des Clubs', 'Copa America',
+    'Euro 2024', 'Euro 2028', 'JO Paris 2024', 'LaLiga', 'Ligua Portugal',
+    'Bundesliga', 'Eredivisie', 'Championship', 'Super Lig',
+    'Tour de France de cyclisme', 'Top 14', 'Roland Garros', 'Formule 1',
     'NBA', 'NHL', 'Premier League', 'Premiership', 'Serie A', 'Trophée des champions', 'Amicaux'],
   pays: ['France', 'Europe', 'Allemagne', 'Angleterre', 'Ecosse', 'Espagne', 'Etats-Unis', 'Italie', 'Monde', 'Portugal'],
   saisons: ['2022/2023', '2023/2024', '2024/2025', '2025/2026', '2026/2027'],
