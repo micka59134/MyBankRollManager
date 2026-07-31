@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.9.2';
+const APP_VERSION = '2.9.3';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -141,7 +141,7 @@ const COMPETITION_LOGOS = {
   'NBA': 'nba.png',
   'NHL': 'nhl.png',
   'Premier League': 'premierleague.png',
-  'Premiership': 'premiership.png',
+  'Premiership': 'ballon.svg',
   'Serie A': 'seriea.png',
   'Trophée des champions': 'lfp.png',
 };
