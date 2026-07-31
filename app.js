@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.9.4';
+const APP_VERSION = '2.10.0';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -37,7 +37,7 @@ const TYPES = ['Paris', 'Paris gratuit', 'Dépôt', 'Retrait'];
 const BET_TYPES = new Set(['Paris', 'Paris gratuit']);
 
 const DEFAULT_CONSTANTES = {
-  bookmakers: ['Winamax', 'Unibet', 'Betsson', 'Parions Sport'],
+  bookmakers: ['Winamax', 'Unibet', 'Betsson'],
   competitions: ['Ligue 1', 'Ligue 2', 'National', 'Ligue des Champions', 'Ligue Europa',
     'Ligue Conférence', 'Ligue des Nations', 'Coupe de France', 'Coupe du Monde 2022',
     'Coupe du Monde 2026', 'Coupe du Monde des Clubs', 'Copa America',
@@ -84,7 +84,6 @@ const BOOKMAKER_LOGOS = {
   'Winamax': 'winamax.png',
   'Unibet': 'unibet.png',
   'Betsson': 'betsson.png',
-  'Parions Sport': 'parionssport.png',
 };
 
 const AVATAR_COLORS = ['#4f46e5', '#0ea5e9', '#16a34a', '#d97706', '#dc2626', '#7c3aed', '#0891b2', '#be185d'];
