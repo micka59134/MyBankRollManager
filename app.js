@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.10.0';
+const APP_VERSION = '2.10.1';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -192,6 +192,11 @@ function loadState(profile) {
     if (raw) {
       const parsed = JSON.parse(raw);
       parsed.constantes = mergeConstantes(DEFAULT_CONSTANTES, parsed.constantes || {});
+      const REMOVED_BOOKMAKERS = ['Parions Sport'];
+      for (const rm of REMOVED_BOOKMAKERS) {
+        parsed.constantes.bookmakers = parsed.constantes.bookmakers.filter(b => b !== rm);
+        if (parsed.activeBookmakers) parsed.activeBookmakers = parsed.activeBookmakers.filter(b => b !== rm);
+      }
       for (const e of parsed.entries || []) {
         if (e.pays === undefined) e.pays = null;
         delete e.exported;
