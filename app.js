@@ -1120,7 +1120,9 @@ function addSettingsItem(inputId, constKey, activeKey, checkboxesId) {
 }
 
 document.getElementById('btnAddBookmaker').addEventListener('click', () => addSettingsItem('newBookmaker', 'bookmakers', 'activeBookmakers', 'bookmakerCheckboxes'));
+document.getElementById('newBookmaker').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addSettingsItem('newBookmaker', 'bookmakers', 'activeBookmakers', 'bookmakerCheckboxes'); } });
 document.getElementById('btnAddCompetition').addEventListener('click', () => addSettingsItem('newCompetition', 'competitions', 'activeCompetitions', 'competitionCheckboxes'));
+document.getElementById('newCompetition').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addSettingsItem('newCompetition', 'competitions', 'activeCompetitions', 'competitionCheckboxes'); } });
 
 document.getElementById('btnSettings').addEventListener('click', openSettings);
 document.getElementById('btnCloseSettings').addEventListener('click', closeSettings);
