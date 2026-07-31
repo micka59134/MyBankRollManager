@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.9.1';
+const APP_VERSION = '2.9.2';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
