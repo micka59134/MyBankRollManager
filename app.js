@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.12.0';
+const APP_VERSION = '2.12.1';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -416,8 +416,8 @@ function renderCards(entries) {
   const s = computeStats(entries);
   const cards = [
     { label: 'Nombre de paris', value: s.nbParis, sub: s.nbParisGratuits ? `dont ${s.nbParisGratuits} gratuit${s.nbParisGratuits > 1 ? 's' : ''}` : '' },
-    { label: 'Montant en paris gratuits', value: fmtMoney(s.totalMiseGratuit) },
     { label: 'Montant misé', value: fmtMoney(s.totalMise - s.totalMiseGratuit) },
+    { label: 'Montant reçus en paris gratuits', value: fmtMoney(s.totalMiseGratuit) },
     { label: 'Montant gagné', value: fmtMoney(s.totalGagne) },
     { label: 'Nombre de paris gagné', value: `${s.gagnants} (${s.tauxReussite.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %)`, cls: s.gagnants > 0 ? 'positive' : '' },
     { label: 'Profit', value: fmtMoney(s.profitTotal), cls: s.profitTotal >= 0 ? 'positive' : 'negative' },
