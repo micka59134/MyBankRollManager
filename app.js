@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.12.2';
+const APP_VERSION = '2.13.0';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -1247,7 +1247,7 @@ document.getElementById('btnBackup').addEventListener('click', () => {
     profile: currentProfile,
     exportedAt: new Date().toISOString(),
     state: {
-      entries: state.entries,
+      entries: getFilteredEntries(),
       activeBookmakers: state.activeBookmakers,
       activeCompetitions: state.activeCompetitions,
       nextOrder: state.nextOrder
@@ -1261,6 +1261,31 @@ document.getElementById('btnBackup').addEventListener('click', () => {
   a.click();
   URL.revokeObjectURL(url);
   showToast('Sauvegarde téléchargée');
+});
+
+document.getElementById('btnExportXlsx').addEventListener('click', () => {
+  const entries = getFilteredEntries();
+  const rows = entries.map(e => ({
+    'Type': e.type,
+    'Date': e.date,
+    'Pari': e.paris,
+    'Bookmaker': e.bookmaker,
+    'Compétition': e.competition,
+    'Pays': e.pays,
+    'Saison': e.saison,
+    'Type de paris': e.typeParis,
+    'Côte': e.cote,
+    'Misé': numOr0(e.montantParie),
+    'Gagné': numOr0(e.montantGagne),
+    'Profit': e.profit,
+    'Cumulé': e.profitCumule,
+    'Commentaire': e.commentaire
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, currentProfile);
+  XLSX.writeFile(wb, `bankroll_manager_${currentProfile}.xlsx`);
+  showToast('Export Excel téléchargé');
 });
 
 /* =========================================================================
