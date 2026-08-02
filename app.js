@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.13.0';
+const APP_VERSION = '2.13.1';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -1273,7 +1273,7 @@ document.getElementById('btnExportXlsx').addEventListener('click', () => {
     'Compétition': e.competition,
     'Pays': e.pays,
     'Saison': e.saison,
-    'Type de paris': e.typeParis,
+    'Type de paris': e.typeDeParis,
     'Côte': e.cote,
     'Misé': numOr0(e.montantParie),
     'Gagné': numOr0(e.montantGagne),
