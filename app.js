@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.13.4';
+const APP_VERSION = '2.14.0';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -44,7 +44,7 @@ const DEFAULT_CONSTANTES = {
     'Euro 2024', 'Euro 2028', 'JO Paris 2024', 'LaLiga', 'Ligua Portugal',
     'Bundesliga', 'Eredivisie', 'Championship', 'Super Lig',
     'Tour de France de cyclisme', 'Top 14', 'Roland Garros', 'Formule 1',
-    'NBA', 'NHL', 'Premier League', 'Premiership', 'Serie A', 'Trophée des champions', 'Amicaux'],
+    'NBA', 'NHL', 'Premier League', 'Premiership', 'Serie A', 'Trophée des champions', 'Amicaux', 'Multi-compétitions'],
   pays: ['France', 'Europe', 'Allemagne', 'Angleterre', 'Ecosse', 'Espagne', 'Etats-Unis', 'Italie', 'Monde', 'Portugal'],
   saisons: ['2022/2023', '2023/2024', '2024/2025', '2025/2026', '2026/2027'],
   typesDeParis: ['Simple', 'Combiné', 'Autre', '3 sur 4', '2 sur 3'],
@@ -162,6 +162,7 @@ const COMPETITION_PAYS = {
   'JO Paris 2024': 'Monde', 'Coupe du Monde 2026': 'Monde',
   'Tour de France de cyclisme': 'France', 'Formule 1': 'Monde',
   'NBA': 'Etats-Unis', 'NHL': 'Etats-Unis',
+  'Multi-compétitions': 'Monde',
 };
 
 function guessSaisonForDate(isoDate) {
@@ -203,6 +204,9 @@ function loadState(profile) {
       }
       if (!parsed.activeBookmakers) parsed.activeBookmakers = [...parsed.constantes.bookmakers];
       if (!parsed.activeCompetitions) parsed.activeCompetitions = [...parsed.constantes.competitions];
+      for (const c of DEFAULT_CONSTANTES.competitions) {
+        if (!parsed.activeCompetitions.includes(c)) parsed.activeCompetitions.push(c);
+      }
       return parsed;
     }
   } catch (e) { console.warn('Etat local corrompu, réinitialisation.', e); }
@@ -267,6 +271,9 @@ function applyFirestoreData(data) {
   }
   state.activeBookmakers = data.activeBookmakers || [...DEFAULT_CONSTANTES.bookmakers];
   state.activeCompetitions = data.activeCompetitions || [...DEFAULT_CONSTANTES.competitions];
+  for (const c of DEFAULT_CONSTANTES.competitions) {
+    if (!state.activeCompetitions.includes(c)) state.activeCompetitions.push(c);
+  }
   state.nextOrder = data.nextOrder || state.entries.length + 1;
   state.constantes = mergeConstantes(DEFAULT_CONSTANTES, {});
   const merge = (constList, activeList) => {
