@@ -24,6 +24,7 @@
       </div>
     </div>
     <div class="topbar-right">
+      <button class="btn btn-ghost" id="btnStats" title="Statistiques">📈</button>
       <button class="btn btn-ghost" id="btnSettings" title="Paramètres">⚙️</button>
       <button class="btn btn-ghost" id="btnTheme" title="Changer de thème">🌙</button>
       <button class="btn btn-primary" id="btnAdd">+ Ajouter</button>
@@ -248,6 +249,42 @@
       <div class="spacer"></div>
       <button class="btn btn-ghost" id="btnCancel">Annuler</button>
       <button class="btn btn-primary" id="btnSave" form="entryForm" type="submit">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal: Stats ===== -->
+<div class="modal-overlay" id="statsOverlay" hidden>
+  <div class="modal modal-stats">
+    <div class="modal-header">
+      <h3>Statistiques — <span id="statsProfileName">Tom</span></h3>
+      <button class="btn-close" id="btnCloseStats">✕</button>
+    </div>
+    <div class="modal-body" id="statsBody">
+      <div class="stats-section">
+        <h4>Résumé global</h4>
+        <div class="stats-grid" id="statsGlobal"></div>
+      </div>
+      <div class="stats-section">
+        <h4>Par compétition</h4>
+        <div class="stats-table-wrap"><table class="stats-table" id="statsCompetition"><thead><tr><th>Compétition</th><th>Paris</th><th>Gagnés</th><th>Réussite</th><th>Misé</th><th>Gagné</th><th>Profit</th><th>ROI</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div class="stats-section">
+        <h4>Par bookmaker</h4>
+        <div class="stats-table-wrap"><table class="stats-table" id="statsBookmaker"><thead><tr><th>Bookmaker</th><th>Paris</th><th>Gagnés</th><th>Réussite</th><th>Misé</th><th>Gagné</th><th>Profit</th><th>ROI</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div class="stats-section">
+        <h4>Par type de paris</h4>
+        <div class="stats-table-wrap"><table class="stats-table" id="statsTypeParis"><thead><tr><th>Type</th><th>Paris</th><th>Gagnés</th><th>Réussite</th><th>Misé</th><th>Gagné</th><th>Profit</th><th>ROI</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div class="stats-section">
+        <h4>Par mois</h4>
+        <div class="stats-table-wrap"><table class="stats-table" id="statsMois"><thead><tr><th>Mois</th><th>Paris</th><th>Gagnés</th><th>Réussite</th><th>Misé</th><th>Gagné</th><th>Profit</th><th>ROI</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div class="stats-section">
+        <h4>Records et tendances</h4>
+        <div class="stats-grid" id="statsRecords"></div>
+      </div>
     </div>
   </div>
 </div>

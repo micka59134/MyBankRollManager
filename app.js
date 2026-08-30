@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.14.0';
+const APP_VERSION = '2.15.0';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -1294,6 +1294,166 @@ document.getElementById('btnExportXlsx').addEventListener('click', () => {
   XLSX.writeFile(wb, `bankroll_manager_${currentProfile}.xlsx`);
   showToast('Export Excel téléchargé');
 });
+
+/* =========================================================================
+   Statistiques
+   ========================================================================= */
+
+function openStats() {
+  document.getElementById('statsProfileName').textContent = currentProfile;
+  document.getElementById('statsOverlay').hidden = false;
+  renderStats();
+}
+
+function closeStats() {
+  document.getElementById('statsOverlay').hidden = true;
+}
+
+document.getElementById('btnStats').addEventListener('click', openStats);
+document.getElementById('btnCloseStats').addEventListener('click', closeStats);
+document.getElementById('statsOverlay').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeStats();
+});
+
+function groupStats(paris, keyFn) {
+  const groups = {};
+  for (const e of paris) {
+    const key = keyFn(e) || '—';
+    if (!groups[key]) groups[key] = { nb: 0, gagnants: 0, mise: 0, gagne: 0, profit: 0 };
+    const g = groups[key];
+    g.nb++;
+    if ((e.profit || 0) > 0) g.gagnants++;
+    g.mise += numOr0(e.montantParie);
+    g.gagne += numOr0(e.montantGagne);
+    g.profit += e.profit === null ? 0 : e.profit;
+  }
+  return groups;
+}
+
+function statsTableRows(groups, sortKey) {
+  return Object.entries(groups)
+    .sort((a, b) => sortKey === 'alpha' ? a[0].localeCompare(b[0], 'fr') : b[1].profit - a[1].profit)
+    .map(([key, g]) => {
+      const taux = g.nb ? ((g.gagnants / g.nb) * 100) : 0;
+      const roi = g.mise ? ((g.profit / g.mise) * 100) : 0;
+      const profitCls = g.profit > 0 ? 'positive' : g.profit < 0 ? 'negative' : '';
+      const roiCls = roi > 0 ? 'positive' : roi < 0 ? 'negative' : '';
+      return `<tr>
+        <td>${escapeHtml(key)}</td>
+        <td>${g.nb}</td>
+        <td>${g.gagnants}</td>
+        <td>${taux.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %</td>
+        <td>${fmtMoney(g.mise)}</td>
+        <td>${fmtMoney(g.gagne)}</td>
+        <td class="${profitCls}">${fmtMoney(g.profit)}</td>
+        <td class="${roiCls}">${roi.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %</td>
+      </tr>`;
+    }).join('');
+}
+
+function renderStats() {
+  const filtered = getFilteredEntries();
+  const paris = filtered.filter(e => BET_TYPES.has(e.type));
+
+  // Global
+  const totalMise = paris.reduce((s, e) => s + numOr0(e.montantParie), 0);
+  const totalGagne = paris.reduce((s, e) => s + numOr0(e.montantGagne), 0);
+  const totalProfit = paris.reduce((s, e) => s + (e.profit === null ? 0 : e.profit), 0);
+  const gagnants = paris.filter(e => (e.profit || 0) > 0).length;
+  const taux = paris.length ? ((gagnants / paris.length) * 100) : 0;
+  const roi = totalMise ? ((totalProfit / totalMise) * 100) : 0;
+  const coteMoy = paris.length ? (paris.reduce((s, e) => s + numOr0(e.cote), 0) / paris.length) : 0;
+  const miseMoy = paris.length ? (totalMise / paris.length) : 0;
+
+  const globalCards = [
+    { label: 'Paris joués', value: paris.length },
+    { label: 'Taux de réussite', value: `${taux.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %` },
+    { label: 'Total misé', value: fmtMoney(totalMise) },
+    { label: 'Total gagné', value: fmtMoney(totalGagne) },
+    { label: 'Profit total', value: fmtMoney(totalProfit), cls: totalProfit >= 0 ? 'positive' : 'negative' },
+    { label: 'ROI', value: `${roi.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %`, cls: roi >= 0 ? 'positive' : 'negative' },
+    { label: 'Côte moyenne', value: coteMoy.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) },
+    { label: 'Mise moyenne', value: fmtMoney(miseMoy) },
+  ];
+  document.getElementById('statsGlobal').innerHTML = globalCards.map(c => `
+    <div class="stats-card">
+      <div class="stats-card-label">${c.label}</div>
+      <div class="stats-card-value ${c.cls || ''}">${c.value}</div>
+    </div>
+  `).join('');
+
+  // Par compétition
+  const byComp = groupStats(paris, e => e.competition);
+  document.querySelector('#statsCompetition tbody').innerHTML = statsTableRows(byComp, 'profit');
+
+  // Par bookmaker
+  const byBook = groupStats(paris, e => e.bookmaker);
+  document.querySelector('#statsBookmaker tbody').innerHTML = statsTableRows(byBook, 'profit');
+
+  // Par type de paris
+  const byType = groupStats(paris, e => e.typeDeParis);
+  document.querySelector('#statsTypeParis tbody').innerHTML = statsTableRows(byType, 'profit');
+
+  // Par mois
+  const byMois = groupStats(paris, e => {
+    if (!e.date) return '—';
+    const [y, m] = e.date.split('-');
+    const mois = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+    return `${mois[parseInt(m, 10) - 1]} ${y}`;
+  });
+  const moisSorted = Object.entries(byMois)
+    .sort((a, b) => {
+      const mois = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+      const parse = s => { const parts = s.split(' '); return [parseInt(parts[1] || '0'), mois.indexOf(parts[0])]; };
+      const [ya, ma] = parse(a[0]);
+      const [yb, mb] = parse(b[0]);
+      return yb - ya || mb - ma;
+    });
+  document.querySelector('#statsMois tbody').innerHTML = moisSorted.map(([key, g]) => {
+    const taux = g.nb ? ((g.gagnants / g.nb) * 100) : 0;
+    const roi = g.mise ? ((g.profit / g.mise) * 100) : 0;
+    const profitCls = g.profit > 0 ? 'positive' : g.profit < 0 ? 'negative' : '';
+    const roiCls = roi > 0 ? 'positive' : roi < 0 ? 'negative' : '';
+    return `<tr>
+      <td>${escapeHtml(key)}</td>
+      <td>${g.nb}</td>
+      <td>${g.gagnants}</td>
+      <td>${taux.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %</td>
+      <td>${fmtMoney(g.mise)}</td>
+      <td>${fmtMoney(g.gagne)}</td>
+      <td class="${profitCls}">${fmtMoney(g.profit)}</td>
+      <td class="${roiCls}">${roi.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %</td>
+    </tr>`;
+  }).join('');
+
+  // Records
+  const bestWin = paris.reduce((best, e) => (e.profit || 0) > (best.profit || 0) ? e : best, { profit: 0 });
+  const worstLoss = paris.reduce((worst, e) => (e.profit || 0) < (worst.profit || 0) ? e : worst, { profit: 0 });
+  const bestCote = paris.reduce((best, e) => numOr0(e.cote) > numOr0(best.cote) ? e : best, { cote: 0 });
+  const bestCoteGagnee = paris.filter(e => (e.profit || 0) > 0).reduce((best, e) => numOr0(e.cote) > numOr0(best.cote) ? e : best, { cote: 0 });
+
+  let serieW = 0, serieL = 0, maxW = 0, maxL = 0;
+  const ordered = [...paris].sort((a, b) => (a.date || '').localeCompare(b.date || '') || a.order - b.order);
+  for (const e of ordered) {
+    if ((e.profit || 0) > 0) { serieW++; serieL = 0; maxW = Math.max(maxW, serieW); }
+    else { serieL++; serieW = 0; maxL = Math.max(maxL, serieL); }
+  }
+
+  const records = [
+    { label: 'Meilleur gain', value: bestWin.paris ? `${fmtMoney(bestWin.profit)} — ${bestWin.paris}` : '—' },
+    { label: 'Pire perte', value: worstLoss.paris ? `${fmtMoney(worstLoss.profit)} — ${worstLoss.paris}` : '—', cls: 'negative' },
+    { label: 'Plus haute côte jouée', value: bestCote.paris ? `${numOr0(bestCote.cote).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} — ${bestCote.paris}` : '—' },
+    { label: 'Plus haute côte gagnée', value: bestCoteGagnee.paris ? `${numOr0(bestCoteGagnee.cote).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} — ${bestCoteGagnee.paris}` : '—', cls: 'positive' },
+    { label: 'Meilleure série de gains', value: `${maxW} paris consécutifs`, cls: 'positive' },
+    { label: 'Pire série de pertes', value: `${maxL} paris consécutifs`, cls: 'negative' },
+  ];
+  document.getElementById('statsRecords').innerHTML = records.map(c => `
+    <div class="stats-card">
+      <div class="stats-card-label">${c.label}</div>
+      <div class="stats-card-value ${c.cls || ''}" style="font-size:14px">${c.value}</div>
+    </div>
+  `).join('');
+}
 
 /* =========================================================================
    Init
