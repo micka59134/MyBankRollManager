@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.15.0';
+const APP_VERSION = '2.15.1';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -1354,6 +1354,23 @@ function statsTableRows(groups, sortKey) {
 function renderStats() {
   const filtered = getFilteredEntries();
   const paris = filtered.filter(e => BET_TYPES.has(e.type));
+
+  // Filtres actifs
+  const banner = document.getElementById('statsFiltersBanner');
+  if (hasActiveFilters()) {
+    const parts = [];
+    if (filters.type.length) parts.push(`<span class="stats-filter-label">Type :</span> ${filters.type.map(v => `<span class="stats-filter-tag">${escapeHtml(v)}</span>`).join('')}`);
+    if (filters.bookmaker.length) parts.push(`<span class="stats-filter-label">Bookmaker :</span> ${filters.bookmaker.map(v => `<span class="stats-filter-tag">${escapeHtml(v)}</span>`).join('')}`);
+    if (filters.competition.length) parts.push(`<span class="stats-filter-label">Compétition :</span> ${filters.competition.map(v => `<span class="stats-filter-tag">${escapeHtml(v)}</span>`).join('')}`);
+    if (filters.pays.length) parts.push(`<span class="stats-filter-label">Pays :</span> ${filters.pays.map(v => `<span class="stats-filter-tag">${escapeHtml(v)}</span>`).join('')}`);
+    if (filters.saison.length) parts.push(`<span class="stats-filter-label">Saison :</span> ${filters.saison.map(v => `<span class="stats-filter-tag">${escapeHtml(v)}</span>`).join('')}`);
+    if (filters.dateFrom || filters.dateTo) parts.push(`<span class="stats-filter-label">Période :</span> <span class="stats-filter-tag">${filters.dateFrom || '…'} → ${filters.dateTo || '…'}</span>`);
+    if (filters.search) parts.push(`<span class="stats-filter-label">Recherche :</span> <span class="stats-filter-tag">${escapeHtml(filters.search)}</span>`);
+    banner.innerHTML = `🔎 <strong>Filtres appliqués</strong> — ${parts.join(' | ')}`;
+    banner.hidden = false;
+  } else {
+    banner.hidden = true;
+  }
 
   // Global
   const totalMise = paris.reduce((s, e) => s + numOr0(e.montantParie), 0);

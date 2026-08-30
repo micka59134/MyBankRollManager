@@ -416,6 +416,9 @@ textarea.input { resize: vertical; font-family: inherit; }
 
 /* ===== Stats modal ===== */
 .modal.modal-stats { width: 900px; height: 85vh; }
+.stats-filters-banner { background: var(--amber-soft); border: 1px solid var(--amber); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: var(--text); }
+.stats-filters-banner .stats-filter-label { font-weight: 600; margin-right: 4px; }
+.stats-filters-banner .stats-filter-tag { display: inline-block; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; padding: 1px 8px; margin: 2px 4px 2px 0; font-size: 12px; }
 .modal-stats .modal-body { flex: 1; min-height: 0; }
 .stats-section { margin-bottom: 24px; }
 .stats-section h4 { font-size: 15px; font-weight: 700; margin: 0 0 10px; color: var(--text); border-bottom: 2px solid var(--primary); padding-bottom: 4px; display: inline-block; }
