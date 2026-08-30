@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.15.2';
+const APP_VERSION = '2.16.0';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -1306,6 +1306,7 @@ function openStats() {
 
 function closeStats() {
   document.getElementById('statsOverlay').hidden = true;
+  destroyStatsCharts();
 }
 
 document.getElementById('btnStats').addEventListener('click', openStats);
@@ -1329,25 +1330,68 @@ function groupStats(paris, keyFn) {
   return groups;
 }
 
-function statsTableRows(groups, sortKey) {
-  return Object.entries(groups)
-    .sort((a, b) => sortKey === 'alpha' ? a[0].localeCompare(b[0], 'fr') : b[1].profit - a[1].profit)
-    .map(([key, g]) => {
-      const taux = g.nb ? ((g.gagnants / g.nb) * 100) : 0;
-      const roi = g.mise ? ((g.profit / g.mise) * 100) : 0;
-      const profitCls = g.profit > 0 ? 'positive' : g.profit < 0 ? 'negative' : '';
-      const roiCls = roi > 0 ? 'positive' : roi < 0 ? 'negative' : '';
-      return `<tr>
-        <td>${escapeHtml(key)}</td>
-        <td>${g.nb}</td>
-        <td>${g.gagnants}</td>
-        <td>${taux.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %</td>
-        <td>${fmtMoney(g.mise)}</td>
-        <td>${fmtMoney(g.gagne)}</td>
-        <td class="${profitCls}">${fmtMoney(g.profit)}</td>
-        <td class="${roiCls}">${roi.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %</td>
-      </tr>`;
-    }).join('');
+const statsCharts = {};
+
+function destroyStatsCharts() {
+  for (const key of Object.keys(statsCharts)) {
+    if (statsCharts[key]) { statsCharts[key].destroy(); delete statsCharts[key]; }
+  }
+}
+
+function getChartColors() {
+  const cs = getComputedStyle(document.documentElement);
+  return {
+    text: cs.getPropertyValue('--text').trim(),
+    muted: cs.getPropertyValue('--text-muted').trim(),
+    border: cs.getPropertyValue('--border').trim(),
+    green: cs.getPropertyValue('--green').trim(),
+    red: cs.getPropertyValue('--red').trim(),
+    primary: cs.getPropertyValue('--primary').trim(),
+  };
+}
+
+function renderBarChart(canvasId, groups, sortKey) {
+  const sorted = Object.entries(groups)
+    .sort((a, b) => sortKey === 'alpha' ? a[0].localeCompare(b[0], 'fr') : b[1].profit - a[1].profit);
+  const labels = sorted.map(([k]) => k);
+  const profits = sorted.map(([, g]) => g.profit);
+  const wins = sorted.map(([, g]) => g.nb ? Math.round((g.gagnants / g.nb) * 100) : 0);
+  const c = getChartColors();
+  const bgColors = profits.map(v => v >= 0 ? c.green + '99' : c.red + '99');
+  const borderColors = profits.map(v => v >= 0 ? c.green : c.red);
+
+  if (statsCharts[canvasId]) { statsCharts[canvasId].destroy(); }
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  statsCharts[canvasId] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Profit (€)',
+        data: profits,
+        backgroundColor: bgColors,
+        borderColor: borderColors,
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            afterLabel: (ctx) => `Réussite : ${wins[ctx.dataIndex]} %`
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color: c.muted, font: { size: 11 } }, grid: { display: false } },
+        y: { ticks: { color: c.muted, callback: v => v + ' €' }, grid: { color: c.border + '66' } }
+      }
+    }
+  });
 }
 
 function renderStats() {
@@ -1377,7 +1421,6 @@ function renderStats() {
   const totalProfit = paris.reduce((s, e) => s + (e.profit === null ? 0 : e.profit), 0);
   const gagnants = paris.filter(e => (e.profit || 0) > 0).length;
   const taux = paris.length ? ((gagnants / paris.length) * 100) : 0;
-  const roi = totalMise ? ((totalProfit / totalMise) * 100) : 0;
   const coteMoy = paris.length ? (paris.reduce((s, e) => s + numOr0(e.cote), 0) / paris.length) : 0;
   const miseMoy = paris.length ? (totalMise / paris.length) : 0;
 
@@ -1387,7 +1430,6 @@ function renderStats() {
     { label: 'Total misé', value: fmtMoney(totalMise) },
     { label: 'Total gagné', value: fmtMoney(totalGagne) },
     { label: 'Profit total', value: fmtMoney(totalProfit), cls: totalProfit >= 0 ? 'positive' : 'negative' },
-    { label: 'ROI', value: `${roi.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %`, cls: roi >= 0 ? 'positive' : 'negative' },
     { label: 'Côte moyenne', value: coteMoy.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) },
     { label: 'Mise moyenne', value: fmtMoney(miseMoy) },
   ];
@@ -1400,47 +1442,80 @@ function renderStats() {
 
   // Par compétition
   const byComp = groupStats(paris, e => e.competition);
-  document.querySelector('#statsCompetition tbody').innerHTML = statsTableRows(byComp, 'profit');
+  renderBarChart('chartCompetition', byComp, 'profit');
 
   // Par bookmaker
   const byBook = groupStats(paris, e => e.bookmaker);
-  document.querySelector('#statsBookmaker tbody').innerHTML = statsTableRows(byBook, 'profit');
+  renderBarChart('chartBookmaker', byBook, 'profit');
 
   // Par type de paris
   const byType = groupStats(paris, e => e.typeDeParis);
-  document.querySelector('#statsTypeParis tbody').innerHTML = statsTableRows(byType, 'profit');
+  renderBarChart('chartTypeParis', byType, 'profit');
 
-  // Par mois
+  // Par mois (line chart)
+  const MOIS_NOMS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
   const byMois = groupStats(paris, e => {
     if (!e.date) return '—';
     const [y, m] = e.date.split('-');
-    const mois = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
-    return `${mois[parseInt(m, 10) - 1]} ${y}`;
+    return `${MOIS_NOMS[parseInt(m, 10) - 1]} ${y}`;
   });
   const moisSorted = Object.entries(byMois)
     .sort((a, b) => {
-      const mois = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
-      const parse = s => { const parts = s.split(' '); return [parseInt(parts[1] || '0'), mois.indexOf(parts[0])]; };
+      const parse = s => { const parts = s.split(' '); return [parseInt(parts[1] || '0'), MOIS_NOMS.indexOf(parts[0])]; };
       const [ya, ma] = parse(a[0]);
       const [yb, mb] = parse(b[0]);
-      return yb - ya || mb - ma;
+      return ya - yb || ma - mb;
     });
-  document.querySelector('#statsMois tbody').innerHTML = moisSorted.map(([key, g]) => {
-    const taux = g.nb ? ((g.gagnants / g.nb) * 100) : 0;
-    const roi = g.mise ? ((g.profit / g.mise) * 100) : 0;
-    const profitCls = g.profit > 0 ? 'positive' : g.profit < 0 ? 'negative' : '';
-    const roiCls = roi > 0 ? 'positive' : roi < 0 ? 'negative' : '';
-    return `<tr>
-      <td>${escapeHtml(key)}</td>
-      <td>${g.nb}</td>
-      <td>${g.gagnants}</td>
-      <td>${taux.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %</td>
-      <td>${fmtMoney(g.mise)}</td>
-      <td>${fmtMoney(g.gagne)}</td>
-      <td class="${profitCls}">${fmtMoney(g.profit)}</td>
-      <td class="${roiCls}">${roi.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %</td>
-    </tr>`;
-  }).join('');
+  const moisLabels = moisSorted.map(([k]) => k);
+  const moisProfits = moisSorted.map(([, g]) => g.profit);
+  const moisCumul = moisProfits.reduce((acc, v) => { acc.push((acc.length ? acc[acc.length - 1] : 0) + v); return acc; }, []);
+  const c = getChartColors();
+
+  if (statsCharts.chartMois) { statsCharts.chartMois.destroy(); }
+  const ctxMois = document.getElementById('chartMois').getContext('2d');
+  statsCharts.chartMois = new Chart(ctxMois, {
+    type: 'bar',
+    data: {
+      labels: moisLabels,
+      datasets: [
+        {
+          type: 'line',
+          label: 'Profit cumulé (€)',
+          data: moisCumul,
+          borderColor: c.primary,
+          backgroundColor: c.primary + '22',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3,
+          pointBackgroundColor: c.primary,
+          yAxisID: 'y1',
+          order: 0,
+        },
+        {
+          label: 'Profit mensuel (€)',
+          data: moisProfits,
+          backgroundColor: moisProfits.map(v => v >= 0 ? c.green + '99' : c.red + '99'),
+          borderColor: moisProfits.map(v => v >= 0 ? c.green : c.red),
+          borderWidth: 1,
+          borderRadius: 4,
+          yAxisID: 'y',
+          order: 1,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: c.muted, font: { size: 11 } } },
+      },
+      scales: {
+        x: { ticks: { color: c.muted, font: { size: 11 } }, grid: { display: false } },
+        y: { position: 'left', ticks: { color: c.muted, callback: v => v + ' €' }, grid: { color: c.border + '66' } },
+        y1: { position: 'right', ticks: { color: c.primary, callback: v => v + ' €' }, grid: { display: false } },
+      }
+    }
+  });
 
   // Records
   const bestWin = paris.reduce((best, e) => (e.profit || 0) > (best.profit || 0) ? e : best, { profit: 0 });

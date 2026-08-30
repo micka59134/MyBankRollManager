@@ -267,20 +267,20 @@
         <div class="stats-grid" id="statsGlobal"></div>
       </div>
       <div class="stats-section">
-        <h4>Par compétition</h4>
-        <div class="stats-table-wrap"><table class="stats-table" id="statsCompetition"><thead><tr><th>Compétition</th><th>Paris</th><th>Gagnés</th><th>Réussite</th><th>Misé</th><th>Gagné</th><th>Profit</th><th>ROI</th></tr></thead><tbody></tbody></table></div>
+        <h4>Profit par compétition</h4>
+        <div class="stats-chart-wrap"><canvas id="chartCompetition"></canvas></div>
       </div>
       <div class="stats-section">
-        <h4>Par bookmaker</h4>
-        <div class="stats-table-wrap"><table class="stats-table" id="statsBookmaker"><thead><tr><th>Bookmaker</th><th>Paris</th><th>Gagnés</th><th>Réussite</th><th>Misé</th><th>Gagné</th><th>Profit</th><th>ROI</th></tr></thead><tbody></tbody></table></div>
+        <h4>Profit par bookmaker</h4>
+        <div class="stats-chart-wrap"><canvas id="chartBookmaker"></canvas></div>
       </div>
       <div class="stats-section">
-        <h4>Par type de paris</h4>
-        <div class="stats-table-wrap"><table class="stats-table" id="statsTypeParis"><thead><tr><th>Type</th><th>Paris</th><th>Gagnés</th><th>Réussite</th><th>Misé</th><th>Gagné</th><th>Profit</th><th>ROI</th></tr></thead><tbody></tbody></table></div>
+        <h4>Profit par type de paris</h4>
+        <div class="stats-chart-wrap"><canvas id="chartTypeParis"></canvas></div>
       </div>
       <div class="stats-section">
-        <h4>Par mois</h4>
-        <div class="stats-table-wrap"><table class="stats-table" id="statsMois"><thead><tr><th>Mois</th><th>Paris</th><th>Gagnés</th><th>Réussite</th><th>Misé</th><th>Gagné</th><th>Profit</th><th>ROI</th></tr></thead><tbody></tbody></table></div>
+        <h4>Évolution mensuelle</h4>
+        <div class="stats-chart-wrap"><canvas id="chartMois"></canvas></div>
       </div>
       <div class="stats-section">
         <h4>Records et tendances</h4>
@@ -334,7 +334,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="vendor/chart.umd.min.js"></script>
 <script src="vendor/xlsx.mini.min.js"></script>
-<script src="app.js?v=36"></script>
+<script src="app.js?v=37"></script>
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js');</script>
 </body>
 </html>
