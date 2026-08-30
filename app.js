@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.16.0';
+const APP_VERSION = '2.16.1';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -1468,7 +1468,6 @@ function renderStats() {
     });
   const moisLabels = moisSorted.map(([k]) => k);
   const moisProfits = moisSorted.map(([, g]) => g.profit);
-  const moisCumul = moisProfits.reduce((acc, v) => { acc.push((acc.length ? acc[acc.length - 1] : 0) + v); return acc; }, []);
   const c = getChartColors();
 
   if (statsCharts.chartMois) { statsCharts.chartMois.destroy(); }
@@ -1477,42 +1476,24 @@ function renderStats() {
     type: 'bar',
     data: {
       labels: moisLabels,
-      datasets: [
-        {
-          type: 'line',
-          label: 'Profit cumulé (€)',
-          data: moisCumul,
-          borderColor: c.primary,
-          backgroundColor: c.primary + '22',
-          fill: true,
-          tension: 0.3,
-          pointRadius: 3,
-          pointBackgroundColor: c.primary,
-          yAxisID: 'y1',
-          order: 0,
-        },
-        {
-          label: 'Profit mensuel (€)',
-          data: moisProfits,
-          backgroundColor: moisProfits.map(v => v >= 0 ? c.green + '99' : c.red + '99'),
-          borderColor: moisProfits.map(v => v >= 0 ? c.green : c.red),
-          borderWidth: 1,
-          borderRadius: 4,
-          yAxisID: 'y',
-          order: 1,
-        }
-      ]
+      datasets: [{
+        label: 'Profit mensuel (€)',
+        data: moisProfits,
+        backgroundColor: moisProfits.map(v => v >= 0 ? c.green + '99' : c.red + '99'),
+        borderColor: moisProfits.map(v => v >= 0 ? c.green : c.red),
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { color: c.muted, font: { size: 11 } } },
+        legend: { display: false },
       },
       scales: {
         x: { ticks: { color: c.muted, font: { size: 11 } }, grid: { display: false } },
-        y: { position: 'left', ticks: { color: c.muted, callback: v => v + ' €' }, grid: { color: c.border + '66' } },
-        y1: { position: 'right', ticks: { color: c.primary, callback: v => v + ' €' }, grid: { display: false } },
+        y: { ticks: { color: c.muted, callback: v => v + ' €' }, grid: { color: c.border + '66' } },
       }
     }
   });
