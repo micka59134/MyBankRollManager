@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.16.1';
+const APP_VERSION = '2.16.2';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -918,6 +918,8 @@ function setResultSegmented(gagne) {
   document.getElementById('montantGagneField').hidden = !gagne;
   if (!gagne) {
     document.getElementById('fMontantGagne').value = '';
+  } else {
+    autoFillMontantGagne();
   }
   updateProfitPreview();
 }
