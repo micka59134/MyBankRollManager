@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.16.6';
+const APP_VERSION = '2.16.7';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -802,7 +802,7 @@ function toggleInvestPopup() {
 
   const ops = state.entries
     .filter(e => e.type === 'Dépôt' || e.type === 'Retrait')
-    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
   if (!popup) {
     popup = document.createElement('div');
