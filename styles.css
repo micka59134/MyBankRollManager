@@ -91,6 +91,11 @@ html, body {
 .logo-text strong { color: var(--primary); font-weight: 800; }
 .topbar-left { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .topbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.topbar-invest { display: flex; flex-direction: column; align-items: flex-end; padding: 4px 12px; border-right: 1px solid var(--border); margin-right: 4px; }
+.topbar-invest-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600; }
+.topbar-invest-value { font-size: 16px; font-weight: 700; color: var(--text); }
+.topbar-invest-value.positive { color: var(--green); }
+.topbar-invest-value.negative { color: var(--red); }
 
 .profile-switcher { display: flex; gap: 4px; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: 3px; }
 .profile-btn {

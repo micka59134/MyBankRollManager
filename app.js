@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.16.2';
+const APP_VERSION = '2.16.3';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -786,12 +786,22 @@ function updateSyncStatus() {
   }
 }
 
+function updateMontantInvesti() {
+  const depots = state.entries.filter(e => e.type === 'Dépôt').reduce((s, e) => s + numOr0(e.credit), 0);
+  const retraits = state.entries.filter(e => e.type === 'Retrait').reduce((s, e) => s + numOr0(e.retrait), 0);
+  const investi = depots - retraits;
+  const el = document.getElementById('topbarInvestValue');
+  el.textContent = fmtMoney(investi);
+  el.className = 'topbar-invest-value' + (investi > 0 ? ' negative' : investi < 0 ? ' positive' : '');
+}
+
 function refreshAll() {
   computeDerivedFields(state.entries);
   saveState();
   document.getElementById('emptyState').hidden = state.entries.length !== 0;
   document.getElementById('mainView').hidden = state.entries.length === 0;
   updateSyncStatus();
+  updateMontantInvesti();
   if (state.entries.length === 0) return;
   populateFilterOptions();
   applyFilters();
