@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.16.3';
+const APP_VERSION = '2.16.4';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -322,6 +322,7 @@ function refreshAllFromFirestore() {
   document.getElementById('emptyState').hidden = state.entries.length !== 0;
   document.getElementById('mainView').hidden = state.entries.length === 0;
   updateSyncStatus();
+  updateMontantInvesti();
   if (state.entries.length === 0) return;
   populateFilterOptions();
   applyFilters();
@@ -794,6 +795,64 @@ function updateMontantInvesti() {
   el.textContent = fmtMoney(investi);
   el.className = 'topbar-invest-value' + (investi > 0 ? ' negative' : investi < 0 ? ' positive' : '');
 }
+
+function toggleInvestPopup() {
+  let popup = document.getElementById('investPopup');
+  if (popup && !popup.hidden) { popup.hidden = true; return; }
+
+  const ops = state.entries
+    .filter(e => e.type === 'Dépôt' || e.type === 'Retrait')
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  if (!popup) {
+    popup = document.createElement('div');
+    popup.id = 'investPopup';
+    popup.className = 'invest-popup';
+    document.getElementById('topbarInvest').appendChild(popup);
+  }
+
+  if (ops.length === 0) {
+    popup.innerHTML = '<div class="invest-popup-empty">Aucun dépôt ou retrait</div>';
+  } else {
+    const depots = state.entries.filter(e => e.type === 'Dépôt');
+    const retraits = state.entries.filter(e => e.type === 'Retrait');
+    const totalDepots = depots.reduce((s, e) => s + numOr0(e.credit), 0);
+    const totalRetraits = retraits.reduce((s, e) => s + numOr0(e.retrait), 0);
+
+    const rows = ops.map(e => {
+      const isDepot = e.type === 'Dépôt';
+      const montant = isDepot ? numOr0(e.credit) : numOr0(e.retrait);
+      return `<tr>
+        <td>${fmtDate(e.date)}</td>
+        <td><span class="invest-tag ${isDepot ? 'invest-tag-depot' : 'invest-tag-retrait'}">${e.type}</span></td>
+        <td>${e.bookmaker || '—'}</td>
+        <td class="${isDepot ? 'negative' : 'positive'}">${isDepot ? '+' : '-'}${fmtMoney(montant)}</td>
+      </tr>`;
+    }).join('');
+
+    popup.innerHTML = `
+      <div class="invest-popup-summary">
+        <span>Dépôts : <strong class="negative">${fmtMoney(totalDepots)}</strong></span>
+        <span>Retraits : <strong class="positive">${fmtMoney(totalRetraits)}</strong></span>
+      </div>
+      <div class="invest-popup-table-wrap">
+        <table class="invest-popup-table">
+          <thead><tr><th>Date</th><th>Type</th><th>Bookmaker</th><th>Montant</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+  popup.hidden = false;
+}
+
+document.getElementById('topbarInvest').addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleInvestPopup();
+});
+document.addEventListener('click', () => {
+  const popup = document.getElementById('investPopup');
+  if (popup) popup.hidden = true;
+});
 
 function refreshAll() {
   computeDerivedFields(state.entries);
