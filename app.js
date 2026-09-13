@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.16.4';
+const APP_VERSION = '2.16.5';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -716,7 +716,7 @@ function getFilteredSortedEntries() {
 }
 
 function renderTable() {
-  const list = getFilteredSortedEntries();
+  const list = getFilteredSortedEntries().filter(e => BET_TYPES.has(e.type));
   document.getElementById('rowCount').textContent = list.length;
   const tbody = document.getElementById('tableBody');
 
