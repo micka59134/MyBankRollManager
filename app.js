@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.16.8';
+const APP_VERSION = '2.16.9';
 
 /* =========================================================================
    Bankroll Manager — logique applicative
@@ -1565,6 +1565,57 @@ function renderStats() {
       scales: {
         x: { ticks: { color: c.muted, font: { size: 11 } }, grid: { display: false } },
         y: { ticks: { color: c.muted, callback: v => v + ' €' }, grid: { color: c.border + '66' } },
+      }
+    }
+  });
+
+  // Nombre de paris par mois
+  const moisNb = moisSorted.map(([, g]) => g.nb);
+  const moisGagnants = moisSorted.map(([, g]) => g.gagnants);
+  const moisPerdants = moisSorted.map(([, g]) => g.nb - g.gagnants);
+
+  if (statsCharts.chartNbParisMois) { statsCharts.chartNbParisMois.destroy(); }
+  const ctxNb = document.getElementById('chartNbParisMois').getContext('2d');
+  statsCharts.chartNbParisMois = new Chart(ctxNb, {
+    type: 'bar',
+    data: {
+      labels: moisLabels,
+      datasets: [
+        {
+          label: 'Gagnés',
+          data: moisGagnants,
+          backgroundColor: c.green + '99',
+          borderColor: c.green,
+          borderWidth: 1,
+          borderRadius: 4,
+        },
+        {
+          label: 'Perdus',
+          data: moisPerdants,
+          backgroundColor: c.red + '99',
+          borderColor: c.red,
+          borderWidth: 1,
+          borderRadius: 4,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: c.muted, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            afterBody: (items) => {
+              const idx = items[0].dataIndex;
+              return `Total : ${moisNb[idx]} paris`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { stacked: true, ticks: { color: c.muted, font: { size: 11 } }, grid: { display: false } },
+        y: { stacked: true, ticks: { color: c.muted, stepSize: 1 }, grid: { color: c.border + '66' } },
       }
     }
   });
